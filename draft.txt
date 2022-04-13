@@ -1,0 +1,43 @@
+https://github.com/gorilla/sessions
+https://astaxie.gitbooks.io/build-web-application-with-golang/content/en/06.2.html
+https://github.com/antonlindstrom/pgstore
+https://github.com/boj/redistore
+https://github.com/golang-migrate/migrate/blob/master/database/postgres/TUTORIAL.md
+https://blog.jetbrains.com/go/2020/05/08/running-go-applications-using-docker-compose-in-goland/
+
+https://github.com/golang-migrate/migrate
+
+https://github.com/golang-migrate/migrate/blob/master/database/postgres/examples/migrations/1085649617_create_users_table.down.sql
+
+CREATE TABLE IF NOT EXISTS users (
+login text not null
+password text not null
+unique (login)
+)
+
+CREATE TABLE IF NOT EXISTS orders (
+number int not null
+user_id int
+uploaded_at timestamp
+current_status int
+)
+
+CREATE TABLE IF NOT EXISTS order_status (
+number int not null
+status int
+time timestamp
+)
+
+CREATE TABLE IF NOT EXISTS balance (
+time timestamp
+operation_type int
+balance_changed int
+order_id int
+reason int
+)
+
+CREATE TABLE IF NOT EXISTS sessions (
+session_id int not null
+user_id int
+time timestamp
+)

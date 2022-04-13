@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-var sessionIdLength = 16
+var sessionIDLength = 16
 
 type User struct {
 	Login           string
@@ -34,7 +34,7 @@ func createPasswordHash(password string) string {
 }
 
 func generateSessionID() (string, error) {
-	b := make([]byte, sessionIdLength)
+	b := make([]byte, sessionIDLength)
 	_, err := rand.Read(b)
 	if err != nil {
 		return "", err

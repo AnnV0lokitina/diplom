@@ -12,7 +12,6 @@ import (
 
 func (h *Handler) Register() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Register")
 		ctx := context.Background()
 
 		request, err := io.ReadAll(r.Body)

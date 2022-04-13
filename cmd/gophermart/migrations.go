@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -16,6 +17,6 @@ func doMigrates(dsn string) {
 		log.Fatal(err)
 	}
 	if err := m.Up(); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 }

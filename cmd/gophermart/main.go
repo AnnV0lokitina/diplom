@@ -11,7 +11,7 @@ import (
 func main() {
 	cfg := initConfig()
 	initParams(cfg)
-	//doMigrates(cfg.DataBaseURI)
+	doMigrates(cfg.DataBaseURI)
 
 	ctx := context.Background()
 	repo, err := repo.NewRepo(ctx, cfg.DataBaseURI)

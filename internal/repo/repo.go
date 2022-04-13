@@ -45,7 +45,7 @@ func (r *Repo) CreateUser(
 		return err
 	}
 	if result.RowsAffected() == 0 {
-		return labelError.NewLabelError(labelError.TypeConflict, errors.New("Login exists"))
+		return labelError.NewLabelError(labelError.TypeConflict, errors.New("login exists"))
 	}
 	return nil
 }
@@ -66,7 +66,7 @@ func (r *Repo) UpdateUserSession(
 		return err
 	}
 	if result.RowsAffected() == 0 {
-		return labelError.NewLabelError(labelError.TypeNotFound, errors.New("No registered user"))
+		return labelError.NewLabelError(labelError.TypeNotFound, errors.New("no registered user"))
 	}
 	return nil
 }
@@ -89,7 +89,7 @@ func (r *Repo) GetUserBySessionID(ctx context.Context, activeSessionID string) (
 		}
 	}
 	if user == nil {
-		return nil, labelError.NewLabelError(labelError.TypeNotFound, errors.New("No registered user"))
+		return nil, labelError.NewLabelError(labelError.TypeNotFound, errors.New("no registered user"))
 	}
 	return user, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	"io"
 	"net/http"
@@ -35,6 +36,7 @@ func (h *Handler) Login() http.HandlerFunc {
 			http.Error(w, "Illegal login or password", http.StatusUnauthorized)
 			return
 		}
+		fmt.Println(err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 	}
 }

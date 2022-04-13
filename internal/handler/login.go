@@ -30,6 +30,7 @@ func (h *Handler) Login() http.HandlerFunc {
 		if err == nil {
 			addSessionIDToCookie(w, user.ActiveSessionID)
 			w.WriteHeader(http.StatusOK)
+			return
 		}
 		var labelErr *labelError.LabelError
 		if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeNotFound {
@@ -37,6 +38,6 @@ func (h *Handler) Login() http.HandlerFunc {
 			return
 		}
 		fmt.Println(err)
-		http.Error(w, "Server error", http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 }

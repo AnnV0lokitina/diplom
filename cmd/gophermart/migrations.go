@@ -1,20 +1,31 @@
 package main
 
 import (
+	"database/sql"
+	"embed"
 	"fmt"
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/pressly/goose/v3"
 )
 
-const pathToMigrations = "file://migrations"
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
 
 func doMigrates(dsn string) {
-	m, err := migrate.New(pathToMigrations, dsn)
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
-	if err := m.Up(); err != nil {
+
+	goose.SetBaseFS(embedMigrations)
+
+	if err := goose.SetDialect("postgres"); err != nil {
 		fmt.Println(err)
+		return
+	}
+
+	if err := goose.Up(db, "migrations"); err != nil {
+		fmt.Println(err)
+		return
 	}
 }

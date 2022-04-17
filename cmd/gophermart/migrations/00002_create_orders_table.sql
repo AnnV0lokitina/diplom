@@ -1,6 +1,6 @@
 -- +goose Up
 CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER NOT NULL PRIMARY KEY,
+    id SERIAL,
     num TEXT,
     login TEXT,
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -106,16 +106,16 @@ func (r *Repo) AddOrder(ctx context.Context, user *entity.User, orderNumber enti
 
 	batch := &pgx.Batch{}
 
-	sql1 := "SELECT number, login FROM orders WHERE number=$1 LIMIT 1"
+	sql1 := "SELECT num, login FROM orders WHERE num=$1 LIMIT 1"
 	_, err = tx.Prepare(ctx, "check", sql1)
 	if err != nil {
 		return err
 	}
 	batch.Queue("check", orderNumber)
 
-	sql2 := "INSERT INTO orders (number, login) " +
+	sql2 := "INSERT INTO orders (num, login) " +
 		"VALUES ($1, $2) " +
-		"ON CONFLICT (number) DO NOTHING"
+		"ON CONFLICT (num) DO NOTHING"
 
 	_, err = tx.Prepare(ctx, "insert", sql2)
 	if err != nil {

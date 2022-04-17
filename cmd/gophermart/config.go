@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/caarlos0/env/v6"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type config struct {
@@ -15,7 +15,7 @@ func initConfig() *config {
 	var cfg config
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal(err)
+		log.WithError(err).Fatal("init environment error")
 	}
 	return &cfg
 }

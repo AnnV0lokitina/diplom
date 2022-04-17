@@ -5,7 +5,7 @@ import (
 	handlerPkg "github.com/AnnV0lokitina/diplom/internal/handler"
 	"github.com/AnnV0lokitina/diplom/internal/repo"
 	"github.com/AnnV0lokitina/diplom/internal/service"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -16,7 +16,7 @@ func main() {
 	ctx := context.Background()
 	repo, err := repo.NewRepo(ctx, cfg.DataBaseURI)
 	if err != nil {
-		log.Fatal(err)
+		log.WithError(err).Fatal("error repo init")
 	}
 	defer repo.Close(ctx)
 

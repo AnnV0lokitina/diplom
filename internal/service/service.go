@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"github.com/AnnV0lokitina/diplom/internal/entity"
+	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
+	log "github.com/sirupsen/logrus"
 )
 
 type Repo interface {
@@ -20,6 +23,7 @@ type Repo interface {
 		passwordHash string,
 	) error
 	GetUserBySessionID(ctx context.Context, activeSessionID string) (*entity.User, error)
+	AddOrder(ctx context.Context, user *entity.User, orderNumber entity.OrderNumber) error
 }
 
 type Service struct {
@@ -56,10 +60,19 @@ func (s *Service) LoginUser(ctx context.Context, login string, password string) 
 	return user, nil
 }
 
-func (s *Service) AuthorizeUser(ctx context.Context, sessionID string) (*entity.User, error) {
+func (s *Service) AddNewOrder(ctx context.Context, sessionID string, orderNumber entity.OrderNumber) error {
 	user, err := s.repo.GetUserBySessionID(ctx, sessionID)
 	if err != nil {
-		return nil, err
+		var labelErr *labelError.LabelError
+		if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeNotFound {
+			log.Info("user not found")
+			return labelError.NewLabelError(labelError.TypeUnauthorized, errors.New("user unauthorized"))
+		}
+		return err
 	}
-	return user, nil
+	err = s.repo.AddOrder(ctx, user, orderNumber)
+	if err != nil {
+		return err
+	}
+	return nil
 }

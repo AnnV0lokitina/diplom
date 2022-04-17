@@ -16,7 +16,7 @@ const (
 type Service interface {
 	RegisterUser(ctx context.Context, login string, password string) (*entity.User, error)
 	LoginUser(ctx context.Context, login string, password string) (*entity.User, error)
-	AuthorizeUser(ctx context.Context, sessionID string) (*entity.User, error)
+	AddNewOrder(ctx context.Context, sessionID string, orderNumber entity.OrderNumber) error
 }
 
 type Handler struct {

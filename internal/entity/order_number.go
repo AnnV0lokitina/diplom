@@ -18,7 +18,7 @@ func (on OrderNumber) Valid() bool {
 
 func byteToDigit(b byte) (int, error) {
 	n := b - code0
-	if n >= 0 && n <= 9 {
+	if n <= 9 {
 		return int(n), nil
 	}
 	return 0, errors.New("illegal order number")

@@ -29,18 +29,18 @@ func (h *Handler) Login() http.HandlerFunc {
 		}
 
 		user, err := h.service.LoginUser(ctx, parsedRequest.Login, parsedRequest.Password)
-		if err == nil {
-			addSessionIDToCookie(w, user.ActiveSessionID)
-			w.WriteHeader(http.StatusOK)
+		if err != nil {
+			var labelErr *labelError.LabelError
+			if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeUnauthorized {
+				log.Info("illegal login or password")
+				http.Error(w, "Illegal login or password", http.StatusUnauthorized)
+				return
+			}
+			log.WithError(err).Info("error when register")
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		var labelErr *labelError.LabelError
-		if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeNotFound {
-			log.Info("illegal login or password")
-			http.Error(w, "Illegal login or password", http.StatusUnauthorized)
-			return
-		}
-		log.WithError(err).Info("error when register")
-		w.WriteHeader(http.StatusInternalServerError)
+		addSessionIDToCookie(w, user.ActiveSessionID)
+		w.WriteHeader(http.StatusOK)
 	}
 }

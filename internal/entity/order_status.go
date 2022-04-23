@@ -3,12 +3,23 @@ package entity
 type OrderStatus int
 
 const (
-	New OrderStatus = iota
-	Processing
-	Invalid
-	Processed
+	OrderStatusNew OrderStatus = iota
+	OrderStatusProcessing
+	OrderStatusInvalid
+	OrderStatusProcessed
 )
 
 func (os OrderStatus) String() string {
-	return [...]string{"NEW", "PROCESSING", "INVALID", "PROCESSED"}[os]
+	switch os {
+	case OrderStatusNew:
+		return "NEW"
+	case OrderStatusProcessing:
+		return "PROCESSING"
+	case OrderStatusInvalid:
+		return "INVALID"
+	case OrderStatusProcessed:
+		return "PROCESSED"
+	default:
+		return "UNKNOWN"
+	}
 }

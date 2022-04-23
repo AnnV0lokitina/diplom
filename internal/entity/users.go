@@ -4,9 +4,13 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"fmt"
+	"time"
 )
 
-var sessionIDLength = 16
+const (
+	sessionIDLength = 16
+	SessionLifetime = 5 * time.Minute
+)
 
 type User struct {
 	Login           string

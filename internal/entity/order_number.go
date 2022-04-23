@@ -27,7 +27,7 @@ func byteToDigit(b byte) (int, error) {
 func checkLuhn(cardNumber OrderNumber) (bool, error) {
 	sum := 0
 	length := len(cardNumber)
-	for i := 1; i < length; i++ {
+	for i := 0; i < length; i++ {
 		number, err := byteToDigit(cardNumber[i])
 		if err != nil {
 			return false, err

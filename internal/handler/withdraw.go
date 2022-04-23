@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	log "github.com/sirupsen/logrus"
@@ -9,7 +10,7 @@ import (
 	"net/http"
 )
 
-func (h *Handler) Order() http.HandlerFunc {
+func (h *Handler) Withdraw() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 		sessionID, err := getSessionIDFromCookie(r)
@@ -18,23 +19,28 @@ func (h *Handler) Order() http.HandlerFunc {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		num, err := io.ReadAll(r.Body)
-		if err != nil || len(num) == 0 {
+		request, err := io.ReadAll(r.Body)
+		if err != nil || len(request) == 0 {
 			log.Info("invalid request format")
 			http.Error(w, "Invalid request format", http.StatusBadRequest)
 			return
 		}
-		err = h.service.AddNewOrder(ctx, sessionID, string(num))
+		var parsedRequest JSONWithdrawRequest
+		if err := json.Unmarshal(request, &parsedRequest); err != nil {
+			http.Error(w, "Invalid request 7", http.StatusBadRequest)
+			return
+		}
+		err = h.service.UserOrderWithdraw(ctx, sessionID, parsedRequest.Order, parsedRequest.Sum)
 		if err != nil {
-			processOrderError(w, err)
+			processWithdrawError(w, err)
 			return
 		}
 
-		w.WriteHeader(http.StatusAccepted)
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
-func processOrderError(w http.ResponseWriter, err error) {
+func processWithdrawError(w http.ResponseWriter, err error) {
 	var labelErr *labelError.LabelError
 	if errors.As(err, &labelErr) {
 		if labelErr.Label == labelError.TypeUnauthorized {
@@ -42,19 +48,14 @@ func processOrderError(w http.ResponseWriter, err error) {
 			http.Error(w, "User unauthorized", http.StatusUnauthorized)
 			return
 		}
-		if labelErr.Label == labelError.TypeInvalidData {
-			log.Info("invalid order number")
-			http.Error(w, "Invalid order number", http.StatusUnprocessableEntity)
+		if labelErr.Label == labelError.TypeNotEnoughPoints {
+			log.Info("not enough points")
+			http.Error(w, "Not enough points", http.StatusPaymentRequired)
 			return
 		}
-		if labelErr.Label == labelError.TypeCreated {
-			log.Info("order existed")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		if labelErr.Label == labelError.TypeConflict {
-			log.Info("order created with another user")
-			w.WriteHeader(http.StatusConflict)
+		if labelErr.Label == labelError.TypeNotFound {
+			log.Info("order not found")
+			http.Error(w, "Order not found", http.StatusUnprocessableEntity)
 			return
 		}
 	}

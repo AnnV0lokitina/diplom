@@ -1,57 +1,44 @@
 package handler
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
 func (h *Handler) GetBalance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.Background()
 		sessionID, err := getSessionIDFromCookie(r)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"session ID": sessionID,
-			}).Info("authorization failed")
+			log.Info("order: no session in")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		log.WithFields(log.Fields{
-			"session ID": sessionID,
-		}).Info("authorization success")
-		w.WriteHeader(http.StatusOK)
-	}
-}
 
-func (h *Handler) Withdraw() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		sessionID, err := getSessionIDFromCookie(r)
+		balance, err := h.service.GetUserBalance(ctx, sessionID)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"session ID": sessionID,
-			}).Info("authorization failed")
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			var labelErr *labelError.LabelError
+			if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeUnauthorized {
+				log.Info("illegal login or password")
+				http.Error(w, "Illegal login or password", http.StatusUnauthorized)
+				return
+			}
+			log.WithError(err).Info("error when register")
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		log.WithFields(log.Fields{
-			"session ID": sessionID,
-		}).Info("authorization success")
+		balanceResponse := JSONBalanceResponse{
+			Current:   balance.Current.ToFloat(),
+			Withdrawn: balance.Withdrawn.ToFloat(),
+		}
 		w.WriteHeader(http.StatusOK)
-	}
-}
-
-func (h *Handler) GetWithdrawals() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		sessionID, err := getSessionIDFromCookie(r)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"session ID": sessionID,
-			}).Info("authorization failed")
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		if err := json.NewEncoder(w).Encode(&balanceResponse); err != nil {
+			http.Error(w, "Error while json conversion", http.StatusInternalServerError)
 			return
 		}
-		log.WithFields(log.Fields{
-			"session ID": sessionID,
-		}).Info("authorization success")
-		w.WriteHeader(http.StatusOK)
 	}
 }

@@ -16,7 +16,11 @@ const (
 type Service interface {
 	RegisterUser(ctx context.Context, login string, password string) (*entity.User, error)
 	LoginUser(ctx context.Context, login string, password string) (*entity.User, error)
-	AddNewOrder(ctx context.Context, sessionID string, orderNumber entity.OrderNumber) error
+	AddNewOrder(ctx context.Context, sessionID string, orderNumber string) error
+	GetOrderList(ctx context.Context, sessionID string) ([]*entity.Order, error)
+	GetUserBalance(ctx context.Context, sessionID string) (*entity.UserBalance, error)
+	GetUserWithdrawals(ctx context.Context, sessionID string) ([]*entity.Withdrawal, error)
+	UserOrderWithdraw(ctx context.Context, sessionID string, orderNumber string, sum float64) error
 }
 
 type Handler struct {

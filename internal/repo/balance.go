@@ -77,7 +77,7 @@ func (r *Repo) UserOrderWithdraw(
 
 	sql1 := "SELECT SUM(balance.delta) sum, balance.operation_type " +
 		"FROM orders " +
-		"JOIN balance ON orders.id=balance.order_id" +
+		"JOIN balance ON orders.id=balance.order_id " +
 		"WHERE orders.login=$1 " +
 		"GROUP BY operation_type"
 	_, err = tx.Prepare(ctx, "check", sql1)

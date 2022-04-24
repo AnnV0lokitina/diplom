@@ -80,20 +80,20 @@ func (r *Repo) UserOrderWithdraw(
 		"JOIN balance ON orders.num=balance.num " +
 		"WHERE orders.login=$1 " +
 		"GROUP BY operation_type"
-	_, err = tx.Prepare(ctx, "check", sql1)
+	_, err = tx.Prepare(ctx, "check_balance", sql1)
 	if err != nil {
 		return err
 	}
-	batch.Queue("check", user.Login)
+	batch.Queue("check_balance", user.Login)
 
 	sql2 := "INSERT INTO balance (operation_type, delta, num) " +
 		"VALUES ($1, $2, $3)"
 
-	_, err = tx.Prepare(ctx, "insert", sql2)
+	_, err = tx.Prepare(ctx, "insert_withdraw", sql2)
 	if err != nil {
 		return err
 	}
-	batch.Queue("insert", OperationSub, sum, orderNumber)
+	batch.Queue("insert_withdraw", OperationSub, sum, orderNumber)
 
 	br := tx.SendBatch(ctx, batch)
 

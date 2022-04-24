@@ -33,6 +33,7 @@ func (h *Handler) GetWithdrawals() http.HandlerFunc {
 			}
 			withdrawResponseList = append(withdrawResponseList, w)
 		}
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(&withdrawResponseList); err != nil {
 			http.Error(w, "Error while json conversion", http.StatusInternalServerError)

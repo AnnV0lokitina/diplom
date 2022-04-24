@@ -35,7 +35,7 @@ func (h *Handler) Withdraw() http.HandlerFunc {
 			processWithdrawError(w, err)
 			return
 		}
-
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 	}
 }

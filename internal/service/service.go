@@ -6,8 +6,6 @@ import (
 	"github.com/AnnV0lokitina/diplom/internal/entity"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
-	"time"
 )
 
 type Repo interface {
@@ -55,7 +53,7 @@ type Repo interface {
 
 type Service struct {
 	repo          Repo
-	jobCheckOrder chan *JobCheckOrder
+	jobCheckOrder chan *entity.JobCheckOrder
 }
 
 func NewService(repo Repo) *Service {
@@ -158,62 +156,4 @@ func (s *Service) UserOrderWithdraw(ctx context.Context, sessionID string, num s
 	}
 	pointValue := entity.NewPointValue(sum)
 	return s.repo.UserOrderWithdraw(ctx, user, order, pointValue)
-}
-
-type JobCheckOrder struct {
-	Number entity.OrderNumber
-}
-
-func (s *Service) CreateGetOrderInfoProcess(ctx context.Context, nOfWorkers int) {
-	s.createCheckOrderWorkerPull(ctx, nOfWorkers)
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			orderNumberList, err := s.repo.GetOrdersListForRequest(ctx)
-			if err != nil {
-				var labelErr *labelError.LabelError
-				if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeNotFound {
-					time.Sleep(1 * time.Second)
-					continue
-				}
-				log.Warning(err)
-				return
-			}
-			for _, orderNumber := range orderNumberList {
-				job := JobCheckOrder{
-					Number: orderNumber,
-				}
-			}
-			time.Sleep(1 * time.Second)
-		}
-	}
-}
-
-func (s *Service) createCheckOrderWorkerPull(ctx context.Context, nOfWorkers int) {
-	s.jobCheckOrder = make(chan *JobCheckOrder)
-	g, _ := errgroup.WithContext(ctx)
-
-	for i := 1; i <= nOfWorkers; i++ {
-		g.Go(func() error {
-			for job := range s.jobCheckOrder {
-				//AddOrderInfo
-				err := s.repo.DeleteBatch(ctx, job.UserID, job.URLs)
-				if err != nil {
-					return err
-				}
-			}
-			return nil
-		})
-	}
-
-	go func() {
-		<-ctx.Done()
-		close(s.jobCheckOrder)
-	}()
-
-	if err := g.Wait(); err != nil {
-		log.Println(err)
-	}
 }

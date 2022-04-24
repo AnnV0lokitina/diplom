@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -24,7 +25,7 @@ func (h *Handler) GetOrdersList() http.HandlerFunc {
 			processOrderListError(w, err)
 			return
 		}
-		orderResponseList := make([]JSONOrderResponse, len(orderList))
+		orderResponseList := make([]JSONOrderResponse, 0, len(orderList))
 		for _, order := range orderList {
 			o := JSONOrderResponse{
 				Number:     string(order.Number),
@@ -32,6 +33,7 @@ func (h *Handler) GetOrdersList() http.HandlerFunc {
 				Accrual:    order.Accrual.ToFloat(),
 				UploadedAt: order.UploadedAt,
 			}
+			fmt.Println("append", o.Number)
 			orderResponseList = append(orderResponseList, o)
 		}
 		w.WriteHeader(http.StatusOK)
@@ -56,7 +58,7 @@ func processOrderListError(w http.ResponseWriter, err error) {
 			return
 		}
 	}
-	log.Info("server error")
+	log.WithError(err).Info("server error")
 	http.Error(w, "Server error", http.StatusInternalServerError)
 	return
 }

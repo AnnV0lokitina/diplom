@@ -24,7 +24,7 @@ func (h *Handler) GetWithdrawals() http.HandlerFunc {
 			processWithdrawListError(w, err)
 			return
 		}
-		withdrawResponseList := make([]JSONWithdrawResponse, len(withdrawList))
+		withdrawResponseList := make([]JSONWithdrawResponse, 0, len(withdrawList))
 		for _, withdraw := range withdrawList {
 			w := JSONWithdrawResponse{
 				Order:       withdraw.OrderNumber,

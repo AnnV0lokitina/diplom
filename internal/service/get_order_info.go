@@ -46,7 +46,9 @@ func (s *Service) CreateGetOrderInfoProcess(ctx context.Context, accrualSystemAd
 func (s *Service) updateStatus(ctx context.Context, accrualSystemAddress string, job *entity.JobCheckOrder) error {
 	client := http.Client{}
 	client.Timeout = time.Second * 1
-	response, err := client.Get(accrualSystemAddress + "/api/orders/" + string(job.Number))
+	url := accrualSystemAddress + "/api/orders/" + string(job.Number)
+	log.WithField("url", url).Info("send request")
+	response, err := client.Get(url)
 	if err != nil {
 		log.WithError(err).Warning("error while send request to external")
 		return err
@@ -58,11 +60,17 @@ func (s *Service) updateStatus(ctx context.Context, accrualSystemAddress string,
 		log.WithError(err).Warning("error while read info from external")
 		return err
 	}
+	log.WithField("body", string(respBody)).Info("receive body")
 	var parsedResponse entity.JSONOrderStatusResponse
 	if err := json.Unmarshal(respBody, &parsedResponse); err != nil {
 		log.WithError(err).Warning("invalid response from external")
 		return err
 	}
+	log.WithFields(log.Fields{
+		"status":  parsedResponse.Status,
+		"order":   parsedResponse.Order,
+		"accrual": parsedResponse.Accrual,
+	}).Info("parsed info")
 	orderNumber := entity.OrderNumber(parsedResponse.Order)
 	status, err := entity.NewOrderStatusFromExternal(parsedResponse.Status)
 	if err != nil {
@@ -75,6 +83,7 @@ func (s *Service) updateStatus(ctx context.Context, accrualSystemAddress string,
 		log.WithError(err).Warning("error while updating order info")
 		return err
 	}
+	log.Info("info added")
 	return nil
 }
 

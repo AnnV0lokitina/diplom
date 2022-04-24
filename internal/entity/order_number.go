@@ -32,16 +32,16 @@ func checkLuhn(cardNumber OrderNumber) (bool, error) {
 		if err != nil {
 			return false, err
 		}
+		var val int
 		if i%2 == 0 {
-			number *= 2
-			if number > 9 {
-				number -= 9
+			val = number
+		} else {
+			val = number * 2
+			if val > 9 {
+				val -= 9
 			}
 		}
-		sum += number
-		if sum >= 10 {
-			sum -= 10
-		}
+		sum += val
 	}
-	return sum == 0, nil
+	return sum%10 == 0, nil
 }

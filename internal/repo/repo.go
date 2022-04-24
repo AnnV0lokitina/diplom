@@ -248,7 +248,7 @@ func (r *Repo) GetOrdersListForRequest(ctx context.Context) ([]entity.OrderNumbe
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	sql := "SELECT num FROM orders WHERE status!=$1 AND status!=$2"
-	rows, _ := r.conn.Query(ctx, sql)
+	rows, _ := r.conn.Query(ctx, sql, entity.OrderStatusProcessed, entity.OrderStatusInvalid)
 	ordersList := make([]entity.OrderNumber, 0)
 	for rows.Next() {
 		var order string

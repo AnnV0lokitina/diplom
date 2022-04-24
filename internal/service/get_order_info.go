@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/AnnV0lokitina/diplom/internal/entity"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	log "github.com/sirupsen/logrus"
@@ -14,33 +15,43 @@ import (
 )
 
 func (s *Service) CreateGetOrderInfoProcess(ctx context.Context, accrualSystemAddress string, nOfWorkers int) {
+	s.jobCheckOrder = make(chan *entity.JobCheckOrder)
+	s.sendOrdersToCheck(ctx)
+	fmt.Println("CreateGetOrderInfoProcess")
 	s.createCheckOrderWorkerPull(ctx, accrualSystemAddress, nOfWorkers)
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			orderNumberList, err := s.repo.GetOrdersListForRequest(ctx)
-			if err != nil {
-				var labelErr *labelError.LabelError
-				if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeNotFound {
-					time.Sleep(200 * time.Millisecond)
-					continue
-				}
-				log.WithError(err).Warning("error get orders")
+}
+
+func (s *Service) sendOrdersToCheck(ctx context.Context) {
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
 				return
-			}
-			for _, orderNumber := range orderNumberList {
-				job := entity.JobCheckOrder{
-					Number: orderNumber,
+			default:
+				fmt.Println("start")
+				orderNumberList, err := s.repo.GetOrdersListForRequest(ctx)
+				fmt.Println(len(orderNumberList))
+				if err != nil {
+					var labelErr *labelError.LabelError
+					if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeNotFound {
+						time.Sleep(200 * time.Millisecond)
+						continue
+					}
+					log.WithError(err).Warning("error get orders")
+					return
 				}
-				if s.jobCheckOrder != nil {
-					s.jobCheckOrder <- &job
+				for _, orderNumber := range orderNumberList {
+					job := entity.JobCheckOrder{
+						Number: orderNumber,
+					}
+					if s.jobCheckOrder != nil {
+						s.jobCheckOrder <- &job
+					}
 				}
+				time.Sleep(200 * time.Millisecond)
 			}
-			time.Sleep(200 * time.Millisecond)
 		}
-	}
+	}()
 }
 
 func (s *Service) updateStatus(ctx context.Context, accrualSystemAddress string, job *entity.JobCheckOrder) error {
@@ -88,7 +99,7 @@ func (s *Service) updateStatus(ctx context.Context, accrualSystemAddress string,
 }
 
 func (s *Service) createCheckOrderWorkerPull(ctx context.Context, accrualSystemAddress string, nOfWorkers int) {
-	s.jobCheckOrder = make(chan *entity.JobCheckOrder)
+	fmt.Println("createCheckOrderWorkerPull")
 	g, _ := errgroup.WithContext(ctx)
 
 	for i := 1; i <= nOfWorkers; i++ {

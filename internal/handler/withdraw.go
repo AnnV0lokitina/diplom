@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -59,6 +60,7 @@ func processWithdrawError(w http.ResponseWriter, err error) {
 			return
 		}
 	}
+	fmt.Println(err)
 	log.Info("server error")
 	http.Error(w, "Server error", http.StatusInternalServerError)
 }

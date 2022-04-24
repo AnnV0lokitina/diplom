@@ -72,7 +72,7 @@ func (r *Repo) GetUserOrders(ctx context.Context, user *entity.User) ([]*entity.
 	sqlRequest := "SELECT o.num, o.login, o.uploaded_at, o.status, sum(b.delta) accrual " +
 		"FROM orders o " +
 		"LEFT JOIN balance b " +
-		"ON o.id=b.order_id AND operation_type=$1 " +
+		"ON o.num=b.num AND operation_type=$1 " +
 		"WHERE o.login=$2 " +
 		"GROUP BY o.num, o.login, o.uploaded_at, o.status"
 	rows, _ := r.conn.Query(ctx, sqlRequest, OperationAdd, user.Login)

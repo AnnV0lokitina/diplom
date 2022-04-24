@@ -53,9 +53,9 @@ func processWithdrawError(w http.ResponseWriter, err error) {
 			http.Error(w, "Not enough points", http.StatusPaymentRequired)
 			return
 		}
-		if labelErr.Label == labelError.TypeNotFound {
+		if labelErr.Label == labelError.TypeInvalidData {
 			log.Info("order not found")
-			http.Error(w, "Order not found", http.StatusUnprocessableEntity)
+			http.Error(w, "Invalid order number", http.StatusUnprocessableEntity)
 			return
 		}
 	}

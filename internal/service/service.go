@@ -33,7 +33,7 @@ type Repo interface {
 	UserOrderWithdraw(
 		ctx context.Context,
 		user *entity.User,
-		order *entity.Order,
+		orderNumber entity.OrderNumber,
 		sum entity.PointValue,
 	) error
 	GetUserOrderByNumber(
@@ -150,10 +150,14 @@ func (s *Service) UserOrderWithdraw(ctx context.Context, sessionID string, num s
 		return err
 	}
 	orderNumber := entity.OrderNumber(num)
-	order, err := s.repo.GetUserOrderByNumber(ctx, user, orderNumber)
-	if err != nil {
-		return err
+	if !orderNumber.Valid() {
+		log.Info("invalid order number")
+		return labelError.NewLabelError(labelError.TypeInvalidData, errors.New("order number incorrect"))
 	}
+	//order, err := s.repo.GetUserOrderByNumber(ctx, user, orderNumber)
+	//if err != nil {
+	//	return err
+	//}
 	pointValue := entity.NewPointValue(sum)
-	return s.repo.UserOrderWithdraw(ctx, user, order, pointValue)
+	return s.repo.UserOrderWithdraw(ctx, user, orderNumber, pointValue)
 }

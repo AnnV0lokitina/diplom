@@ -66,7 +66,7 @@ func (r *Repo) GetUserWithdrawals(ctx context.Context, user *entity.User) ([]*en
 	defer cancel()
 	sql := "SELECT o.num, b.delta, b.created_at " +
 		"FROM orders o " +
-		"LEFT JOIN balance b ON o.id=b.order_id AND b.operation_type=$1 " +
+		"LEFT JOIN balance b ON o.num=b.num AND b.operation_type=$1 " +
 		"WHERE o.login=$2 " +
 		"ORDER BY b.created_at DESC"
 	rows, _ := r.conn.Query(ctx, sql, OperationSub, user.Login)
@@ -102,21 +102,24 @@ func (r *Repo) AddOrderInfo(
 
 	sqlSetStatus := "UPDATE orders " +
 		"SET status=$1 " +
-		"WHERE num=$2 " +
-		"RETURNING id"
+		"WHERE num=$2 "
+	//"RETURNING id"
 
-	rows, _ := tx.Query(ctx, sqlSetStatus, status, orderNumber)
-	id := 0
-	for rows.Next() {
-		err := rows.Scan(&id)
-		if err != nil {
-			return err
-		}
+	_, err = tx.Exec(ctx, sqlSetStatus, status, orderNumber)
+	if err != nil {
+		return err
 	}
+	//id := 0
+	//for rows.Next() {
+	//	err := rows.Scan(&id)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
-	if id == 0 {
-		return labelError.NewLabelError(labelError.TypeNotFound, errors.New("no order number"))
-	}
+	//if id == 0 {
+	//	return labelError.NewLabelError(labelError.TypeNotFound, errors.New("no order number"))
+	//}
 
 	if accrual == 0 {
 		err = tx.Commit(ctx)
@@ -126,10 +129,10 @@ func (r *Repo) AddOrderInfo(
 		return nil
 	}
 
-	sqlChangeBalance := "INSERT INTO balance (operation_type, delta, order_id) " +
+	sqlChangeBalance := "INSERT INTO balance (operation_type, delta, num) " +
 		"VALUES ($1, $2, $3)"
 
-	if _, err = tx.Exec(ctx, sqlChangeBalance, OperationAdd, accrual, id); err != nil {
+	if _, err = tx.Exec(ctx, sqlChangeBalance, OperationAdd, accrual, orderNumber); err != nil {
 		return err
 	}
 	err = tx.Commit(ctx)

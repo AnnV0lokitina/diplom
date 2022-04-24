@@ -51,7 +51,7 @@ func (r *Repo) GetUserBalance(ctx context.Context, user *entity.User) (*entity.U
 	defer cancel()
 	sql := "SELECT SUM(balance.delta) sum, balance.operation_type " +
 		"FROM orders " +
-		"JOIN balance ON orders.id=balance.order_id " +
+		"JOIN balance ON orders.num=balance.num " +
 		"WHERE orders.login=$1 " +
 		"GROUP BY operation_type"
 	rows, _ := r.conn.Query(ctx, sql, user.Login)
@@ -61,7 +61,7 @@ func (r *Repo) GetUserBalance(ctx context.Context, user *entity.User) (*entity.U
 func (r *Repo) UserOrderWithdraw(
 	ctx context.Context,
 	user *entity.User,
-	order *entity.Order,
+	orderNumber entity.OrderNumber,
 	sum entity.PointValue,
 ) error {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
@@ -77,7 +77,7 @@ func (r *Repo) UserOrderWithdraw(
 
 	sql1 := "SELECT SUM(balance.delta) sum, balance.operation_type " +
 		"FROM orders " +
-		"JOIN balance ON orders.id=balance.order_id " +
+		"JOIN balance ON orders.num=balance.num " +
 		"WHERE orders.login=$1 " +
 		"GROUP BY operation_type"
 	_, err = tx.Prepare(ctx, "check", sql1)
@@ -86,14 +86,14 @@ func (r *Repo) UserOrderWithdraw(
 	}
 	batch.Queue("check", user.Login)
 
-	sql2 := "INSERT INTO balance (operation_type, delta, order_id) " +
+	sql2 := "INSERT INTO balance (operation_type, delta, num) " +
 		"VALUES ($1, $2, $3)"
 
 	_, err = tx.Prepare(ctx, "insert", sql2)
 	if err != nil {
 		return err
 	}
-	batch.Queue("insert", OperationAdd, sum, order.ID)
+	batch.Queue("insert", OperationSub, sum, orderNumber)
 
 	br := tx.SendBatch(ctx, batch)
 

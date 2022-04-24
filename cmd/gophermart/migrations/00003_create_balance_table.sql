@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS balance (
     created_at timestamp (0) with time zone DEFAULT NOW(),
     operation_type integer,
     delta integer,
-    order_id integer
+    num TEXT
 );
 
 -- +goose Down

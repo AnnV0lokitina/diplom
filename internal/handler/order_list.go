@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -33,7 +32,6 @@ func (h *Handler) GetOrdersList() http.HandlerFunc {
 				Accrual:    order.Accrual.ToFloat(),
 				UploadedAt: order.UploadedAt,
 			}
-			fmt.Println("append", o.Number)
 			orderResponseList = append(orderResponseList, o)
 		}
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")

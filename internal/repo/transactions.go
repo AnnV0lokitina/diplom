@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/AnnV0lokitina/diplom/internal/entity"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	"github.com/jackc/pgx/v4"
@@ -21,7 +20,6 @@ func getUserBalanceFromRows(rows pgx.Rows) (*entity.UserBalance, error) {
 		}
 		sums[operationType] = sum
 	}
-	fmt.Println(len(sums))
 	if len(sums) == 0 {
 		return &entity.UserBalance{
 			Current:   0,
@@ -38,7 +36,6 @@ func getUserBalanceFromRows(rows pgx.Rows) (*entity.UserBalance, error) {
 	if !ok {
 		addSum = 0
 	}
-	fmt.Println(addSum, subSub, addSum-subSub)
 	return &entity.UserBalance{
 		Current:   entity.PointValue(addSum - subSub),
 		Withdrawn: entity.PointValue(subSub),

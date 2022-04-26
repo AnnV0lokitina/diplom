@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/AnnV0lokitina/diplom/internal/entity"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	log "github.com/sirupsen/logrus"
@@ -18,7 +17,6 @@ func (s *Service) CreateGetOrderInfoProcess(ctx context.Context, accrualSystemAd
 	s.jobCheckOrder = make(chan *entity.JobCheckOrder)
 	s.client = http.Client{}
 	s.sendOrdersToCheck(ctx)
-	fmt.Println("CreateGetOrderInfoProcess")
 	s.createCheckOrderWorkerPull(ctx, accrualSystemAddress, nOfWorkers)
 }
 
@@ -30,9 +28,7 @@ func (s *Service) sendOrdersToCheck(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				fmt.Println("start")
 				orderNumberList, err := s.repo.GetOrdersListForRequest(ctx)
-				fmt.Println(len(orderNumberList))
 				if err != nil {
 					var labelErr *labelError.LabelError
 					if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeNotFound {
@@ -99,7 +95,6 @@ func (s *Service) updateStatus(ctx context.Context, accrualSystemAddress string,
 }
 
 func (s *Service) createCheckOrderWorkerPull(ctx context.Context, accrualSystemAddress string, nOfWorkers int) {
-	fmt.Println("createCheckOrderWorkerPull")
 	g, _ := errgroup.WithContext(ctx)
 
 	for i := 1; i <= nOfWorkers; i++ {

@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     session_id TEXT not null,
     created_at INTEGER NOT NULL,
     lifetime INTEGER NOT NULL,
-    login TEXT not null
+    user_id INTEGER NOT NULL
 );
 
 

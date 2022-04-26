@@ -6,6 +6,7 @@ import (
 	"github.com/AnnV0lokitina/diplom/internal/entity"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 )
 
 type Repo interface {
@@ -20,12 +21,8 @@ type Repo interface {
 		ctx context.Context,
 		login string,
 		passwordHash string,
-	) (bool, error)
-	AddUserSession(
-		ctx context.Context,
-		sessionID string,
-		login string,
-	) error
+	) (int, error)
+	AddUserSession(ctx context.Context, user *entity.User) error
 	GetUserBySessionID(ctx context.Context, activeSessionID string) (*entity.User, error)
 	AddOrder(ctx context.Context, user *entity.User, orderNumber entity.OrderNumber) error
 	GetUserOrders(ctx context.Context, user *entity.User) ([]*entity.Order, error)
@@ -36,11 +33,6 @@ type Repo interface {
 		orderNumber entity.OrderNumber,
 		sum entity.PointValue,
 	) error
-	GetUserOrderByNumber(
-		ctx context.Context,
-		user *entity.User,
-		orderNumber entity.OrderNumber,
-	) (*entity.Order, error)
 	GetUserWithdrawals(ctx context.Context, user *entity.User) ([]*entity.Withdrawal, error)
 	AddOrderInfo(
 		ctx context.Context,
@@ -54,6 +46,7 @@ type Repo interface {
 type Service struct {
 	repo          Repo
 	jobCheckOrder chan *entity.JobCheckOrder
+	client        http.Client
 }
 
 func NewService(repo Repo) *Service {
@@ -63,31 +56,43 @@ func NewService(repo Repo) *Service {
 }
 
 func (s *Service) RegisterUser(ctx context.Context, login string, password string) (*entity.User, error) {
-	user, err := entity.NewUser(login, password)
+	passwordHash := entity.CreatePasswordHash(password)
+	sessionID, err := entity.GenerateSessionID()
 	if err != nil {
 		return nil, err
 	}
-	err = s.repo.CreateUser(ctx, user.ActiveSessionID, user.Login, user.PasswordHash)
+	err = s.repo.CreateUser(ctx, sessionID, login, passwordHash)
 	if err != nil {
 		return nil, err
+	}
+	user := &entity.User{
+		ActiveSessionID: sessionID,
+		Login:           login,
 	}
 	return user, nil
 }
 
 func (s *Service) LoginUser(ctx context.Context, login string, password string) (*entity.User, error) {
-	user, err := entity.NewUser(login, password)
+	passwordHash := entity.CreatePasswordHash(password)
+	sessionID, err := entity.GenerateSessionID()
 	if err != nil {
 		return nil, err
 	}
-	auth, err := s.repo.AuthUser(ctx, user.Login, user.PasswordHash)
+	userID, err := s.repo.AuthUser(ctx, login, passwordHash)
 	if err != nil {
+		var labelErr *labelError.LabelError
+		if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeNotFound {
+			log.Info("user not found")
+			return nil, labelError.NewLabelError(labelError.TypeUnauthorized, errors.New("user unauthorized"))
+		}
 		return nil, err
 	}
-	if !auth {
-		log.Info("user not found")
-		return nil, labelError.NewLabelError(labelError.TypeUnauthorized, errors.New("user unauthorized"))
+	user := &entity.User{
+		ID:              userID,
+		Login:           login,
+		ActiveSessionID: sessionID,
 	}
-	err = s.repo.AddUserSession(ctx, user.ActiveSessionID, user.Login)
+	err = s.repo.AddUserSession(ctx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -154,10 +159,6 @@ func (s *Service) UserOrderWithdraw(ctx context.Context, sessionID string, num s
 		log.Info("invalid order number")
 		return labelError.NewLabelError(labelError.TypeInvalidData, errors.New("order number incorrect"))
 	}
-	//order, err := s.repo.GetUserOrderByNumber(ctx, user, orderNumber)
-	//if err != nil {
-	//	return err
-	//}
 	pointValue := entity.NewPointValue(sum)
 	return s.repo.UserOrderWithdraw(ctx, user, orderNumber, pointValue)
 }

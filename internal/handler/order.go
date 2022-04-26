@@ -58,6 +58,6 @@ func processOrderError(w http.ResponseWriter, err error) {
 			return
 		}
 	}
-	log.Info("server error")
+	log.WithError(err).Info("server error")
 	http.Error(w, "Server error", http.StatusInternalServerError)
 }

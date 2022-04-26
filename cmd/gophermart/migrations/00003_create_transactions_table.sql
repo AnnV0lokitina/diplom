@@ -1,10 +1,10 @@
 -- +goose Up
-CREATE TABLE IF NOT EXISTS balance (
+CREATE TABLE IF NOT EXISTS transactions (
     id SERIAL,
     created_at timestamp (0) with time zone DEFAULT NOW(),
     operation_type integer,
     delta integer,
-    num TEXT
+    order_id INTEGER NOT NULL
 );
 
 -- +goose Down

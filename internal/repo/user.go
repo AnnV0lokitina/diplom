@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/AnnV0lokitina/diplom/internal/entity"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
+	"github.com/jackc/pgx/v4"
 	"time"
 )
 
@@ -25,22 +26,24 @@ func (r *Repo) CreateUser(
 
 	sqlInsertUser := "INSERT INTO users (login, password) " +
 		"VALUES ($1, $2) " +
-		"ON CONFLICT (login) DO NOTHING"
+		"ON CONFLICT (login) DO NOTHING " +
+		"RETURNING id"
 
-	result, err := tx.Exec(ctx, sqlInsertUser, login, passwordHash)
+	row := tx.QueryRow(ctx, sqlInsertUser, login, passwordHash)
+	var userID int
+	err = row.Scan(&userID)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return labelError.NewLabelError(labelError.TypeConflict, errors.New("login exists"))
+		}
 		return err
 	}
-	if result.RowsAffected() == 0 {
-		return labelError.NewLabelError(labelError.TypeConflict, errors.New("login exists"))
-	}
-
-	sqlInsertSession := "INSERT INTO sessions (session_id, created_at, lifetime, login) " +
+	sqlInsertSession := "INSERT INTO sessions (session_id, created_at, lifetime, user_id) " +
 		"VALUES ($1, $2, $3, $4)"
 
 	timestamp := time.Now().Unix()
 	lifetime := entity.SessionLifetime.Seconds()
-	if _, err = tx.Exec(ctx, sqlInsertSession, sessionID, timestamp, lifetime, login); err != nil {
+	if _, err = tx.Exec(ctx, sqlInsertSession, sessionID, timestamp, lifetime, userID); err != nil {
 		return err
 	}
 	err = tx.Commit(ctx)
@@ -54,33 +57,30 @@ func (r *Repo) AuthUser(
 	ctx context.Context,
 	login string,
 	passwordHash string,
-) (bool, error) {
+) (int, error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
-	sql := "SELECT count(*) FROM users WHERE login=$1 AND password=$2"
-	rows, _ := r.conn.Query(ctx, sql, login, passwordHash)
-	n := 0
-	for rows.Next() {
-		err := rows.Scan(&n)
-		if err != nil {
-			return false, err
+	sqlGetUser := "SELECT id FROM users WHERE login=$1 AND password=$2 LIMIT 1"
+	row := r.conn.QueryRow(ctx, sqlGetUser, login, passwordHash)
+	var userID int
+	err := row.Scan(&userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, labelError.NewLabelError(labelError.TypeNotFound, errors.New("no registered user"))
 		}
+		return 0, err
 	}
-	return n > 0, nil
+	return userID, nil
 }
 
-func (r *Repo) AddUserSession(
-	ctx context.Context,
-	sessionID string,
-	login string,
-) error {
+func (r *Repo) AddUserSession(ctx context.Context, user *entity.User) error {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
-	sqlInsertSession := "INSERT INTO sessions (session_id, created_at, lifetime, login) " +
+	sqlInsertSession := "INSERT INTO sessions (session_id, created_at, lifetime, user_id) " +
 		"VALUES ($1, $2, $3, $4)"
 	timestamp := time.Now().Unix()
 	lifetime := entity.SessionLifetime.Seconds()
-	result, err := r.conn.Exec(ctx, sqlInsertSession, sessionID, timestamp, lifetime, login)
+	result, err := r.conn.Exec(ctx, sqlInsertSession, user.ActiveSessionID, timestamp, lifetime, user.ID)
 	if err != nil {
 		return err
 	}
@@ -90,26 +90,29 @@ func (r *Repo) AddUserSession(
 	return nil
 }
 
-func (r *Repo) GetUserBySessionID(ctx context.Context, activeSessionID string) (*entity.User, error) {
+func (r *Repo) GetUserBySessionID(ctx context.Context, sessionID string) (*entity.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
-	sql := "SELECT login FROM sessions WHERE session_id=$1 AND created_at > $2 - lifetime"
+	sqlSelectUser := "SELECT u.id, u.login " +
+		"FROM sessions s " +
+		"JOIN users u ON u.id=s.user_id " +
+		"WHERE session_id=$1 AND created_at > $2 - lifetime " +
+		"LIMIT 1"
 	timestamp := time.Now().Unix()
-	rows, _ := r.conn.Query(ctx, sql, activeSessionID, timestamp)
-	var user *entity.User
-	for rows.Next() {
-		var login string
-		err := rows.Scan(&login)
-		if err != nil {
-			return nil, err
+	row := r.conn.QueryRow(ctx, sqlSelectUser, sessionID, timestamp)
+	var userID int
+	var login string
+	err := row.Scan(&userID, &login)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, labelError.NewLabelError(labelError.TypeNotFound, errors.New("no registered user"))
 		}
-		user = &entity.User{
-			Login:           login,
-			ActiveSessionID: activeSessionID,
-		}
+		return nil, err
 	}
-	if user == nil {
-		return nil, labelError.NewLabelError(labelError.TypeNotFound, errors.New("no registered user"))
+	user := &entity.User{
+		ID:              userID,
+		Login:           login,
+		ActiveSessionID: sessionID,
 	}
 	return user, nil
 }

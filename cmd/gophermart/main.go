@@ -37,7 +37,7 @@ func main() {
 	application := NewApp(handler)
 
 	go func() {
-		service.CreateGetOrderInfoProcess(ctx, cfg.AccrualSystemAddress, nOfWorkers)
+		//service.CreateGetOrderInfoProcess(ctx, cfg.AccrualSystemAddress, nOfWorkers)
 	}()
 
 	err = application.Run(ctx, cfg.RunAddress)

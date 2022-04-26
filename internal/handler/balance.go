@@ -27,7 +27,7 @@ func (h *Handler) GetBalance() http.HandlerFunc {
 				http.Error(w, "Illegal login or password", http.StatusUnauthorized)
 				return
 			}
-			log.WithError(err).Info("error when register")
+			log.WithError(err).Info("error when register balance handler")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

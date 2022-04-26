@@ -22,14 +22,14 @@ func (r *Repo) AddOrder(ctx context.Context, user *entity.User, orderNumber enti
 
 	batch := &pgx.Batch{}
 
-	sql1 := "SELECT num, login FROM orders WHERE num=$1 LIMIT 1"
+	sql1 := "SELECT num, user_id FROM orders WHERE num=$1 LIMIT 1"
 	_, err = tx.Prepare(ctx, "check", sql1)
 	if err != nil {
 		return err
 	}
 	batch.Queue("check", orderNumber)
 
-	sql2 := "INSERT INTO orders (num, login) " +
+	sql2 := "INSERT INTO orders (num, user_id) " +
 		"VALUES ($1, $2) " +
 		"ON CONFLICT (num) DO NOTHING"
 
@@ -37,14 +37,14 @@ func (r *Repo) AddOrder(ctx context.Context, user *entity.User, orderNumber enti
 	if err != nil {
 		return err
 	}
-	batch.Queue("insert", orderNumber, user.Login)
+	batch.Queue("insert", orderNumber, user.ID)
 
 	br := tx.SendBatch(ctx, batch)
 
 	var number string
-	var login string
+	var userID int
 	numberFind := true
-	err = br.QueryRow().Scan(&number, &login)
+	err = br.QueryRow().Scan(&number, &userID)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return err
@@ -52,7 +52,7 @@ func (r *Repo) AddOrder(ctx context.Context, user *entity.User, orderNumber enti
 		numberFind = false
 	}
 	if numberFind {
-		if user.Login == login {
+		if user.ID == userID {
 			return labelError.NewLabelError(labelError.TypeCreated, errors.New("number created"))
 		}
 		return labelError.NewLabelError(labelError.TypeConflict, errors.New("number exists"))
@@ -69,18 +69,19 @@ func (r *Repo) AddOrder(ctx context.Context, user *entity.User, orderNumber enti
 func (r *Repo) GetUserOrders(ctx context.Context, user *entity.User) ([]*entity.Order, error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
-	sqlRequest := "SELECT o.num, o.login, o.uploaded_at, o.status, sum(b.delta) accrual " +
+	sqlRequest := "SELECT o.num, o.uploaded_at, o.status, sum(t.delta) accrual " +
 		"FROM orders o " +
-		"LEFT JOIN balance b " +
-		"ON o.num=b.num AND operation_type=$1 " +
-		"WHERE o.login=$2 " +
-		"GROUP BY o.num, o.login, o.uploaded_at, o.status"
-	rows, _ := r.conn.Query(ctx, sqlRequest, OperationAdd, user.Login)
+		"LEFT JOIN transactions t " +
+		"ON o.id=t.order_id AND t.operation_type=$1 " +
+		"WHERE o.user_id=$2 " +
+		"GROUP BY o.num, o.uploaded_at, o.status"
+	rows, _ := r.conn.Query(ctx, sqlRequest, OperationAdd, user.ID)
 	orders := make([]*entity.Order, 0)
 	for rows.Next() {
 		order := &entity.Order{}
 		var accrual sql.NullInt64
-		err := rows.Scan(&order.Number, &order.Login, &order.UploadedAt, &order.Status, &accrual)
+		err := rows.Scan(&order.Number, &order.UploadedAt, &order.Status, &accrual)
+		order.Login = user.Login
 		if accrual.Valid {
 			order.Accrual = entity.PointValue(accrual.Int64)
 		}

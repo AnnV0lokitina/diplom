@@ -36,7 +36,7 @@ func (h *Handler) Register() http.HandlerFunc {
 				http.Error(w, "Login existed", http.StatusConflict)
 				return
 			}
-			log.WithError(err).Info("error when register")
+			log.WithError(err).Info("error when register register handler")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

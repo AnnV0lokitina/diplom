@@ -16,6 +16,7 @@ import (
 
 func (s *Service) CreateGetOrderInfoProcess(ctx context.Context, accrualSystemAddress string, nOfWorkers int) {
 	s.jobCheckOrder = make(chan *entity.JobCheckOrder)
+	s.client = http.Client{}
 	s.sendOrdersToCheck(ctx)
 	fmt.Println("CreateGetOrderInfoProcess")
 	s.createCheckOrderWorkerPull(ctx, accrualSystemAddress, nOfWorkers)
@@ -23,18 +24,18 @@ func (s *Service) CreateGetOrderInfoProcess(ctx context.Context, accrualSystemAd
 
 func (s *Service) sendOrdersToCheck(ctx context.Context) {
 	go func() {
+		ticker := time.NewTicker(500 * time.Millisecond)
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			default:
+			case <-ticker.C:
 				fmt.Println("start")
 				orderNumberList, err := s.repo.GetOrdersListForRequest(ctx)
 				fmt.Println(len(orderNumberList))
 				if err != nil {
 					var labelErr *labelError.LabelError
 					if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeNotFound {
-						time.Sleep(200 * time.Millisecond)
 						continue
 					}
 					log.WithError(err).Warning("error get orders")
@@ -48,25 +49,22 @@ func (s *Service) sendOrdersToCheck(ctx context.Context) {
 						s.jobCheckOrder <- &job
 					}
 				}
-				time.Sleep(200 * time.Millisecond)
 			}
 		}
 	}()
 }
 
 func (s *Service) updateStatus(ctx context.Context, accrualSystemAddress string, job *entity.JobCheckOrder) error {
-	client := http.Client{}
-	client.Timeout = time.Second * 1
+	s.client.Timeout = time.Second * 1
 	url := accrualSystemAddress + "/api/orders/" + string(job.Number)
 	log.WithField("url", url).Info("send request")
-	response, err := client.Get(url)
+	response, err := s.client.Get(url)
 	if err != nil {
 		log.WithError(err).Warning("error while send request to external")
 		return err
 	}
 	defer response.Body.Close()
-	reader := response.Body
-	respBody, err := ioutil.ReadAll(reader)
+	respBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		log.WithError(err).Warning("error while read info from external")
 		return err
@@ -77,11 +75,13 @@ func (s *Service) updateStatus(ctx context.Context, accrualSystemAddress string,
 		log.WithError(err).Warning("invalid response from external")
 		return err
 	}
+
 	log.WithFields(log.Fields{
 		"status":  parsedResponse.Status,
 		"order":   parsedResponse.Order,
 		"accrual": parsedResponse.Accrual,
 	}).Info("parsed info")
+
 	orderNumber := entity.OrderNumber(parsedResponse.Order)
 	status, err := entity.NewOrderStatusFromExternal(parsedResponse.Status)
 	if err != nil {

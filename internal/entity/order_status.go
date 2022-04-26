@@ -39,13 +39,13 @@ func NewOrderStatusFromExternal(externalStatus string) (OrderStatus, error) {
 	switch externalStatus {
 	case "REGISTERED":
 		// заказ зарегистрирован, но не начисление не рассчитано
-		return OrderStatusNew, nil
+		return OrderStatusProcessing, nil
 	case "INVALID":
 		// заказ не принят к расчёту, и вознаграждение не будет начислено
 		return OrderStatusInvalid, nil
 	case "PROCESSING":
 		// расчёт начисления в процессе
-		return OrderStatusProcessed, nil
+		return OrderStatusProcessing, nil
 	case "PROCESSED":
 		// расчёт начисления окончен
 		return OrderStatusProcessed, nil

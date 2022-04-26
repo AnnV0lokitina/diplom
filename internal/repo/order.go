@@ -20,31 +20,13 @@ func (r *Repo) AddOrder(ctx context.Context, user *entity.User, orderNumber enti
 	}
 	defer tx.Rollback(ctx)
 
-	batch := &pgx.Batch{}
-
-	sql1 := "SELECT num, user_id FROM orders WHERE num=$1 LIMIT 1"
-	_, err = tx.Prepare(ctx, "check", sql1)
-	if err != nil {
-		return err
-	}
-	batch.Queue("check", orderNumber)
-
-	sql2 := "INSERT INTO orders (num, user_id) " +
-		"VALUES ($1, $2) " +
-		"ON CONFLICT (num) DO NOTHING"
-
-	_, err = tx.Prepare(ctx, "insert", sql2)
-	if err != nil {
-		return err
-	}
-	batch.Queue("insert", orderNumber, user.ID)
-
-	br := tx.SendBatch(ctx, batch)
+	sqlCheck := "SELECT num, user_id FROM orders WHERE num=$1 LIMIT 1"
+	row := tx.QueryRow(ctx, sqlCheck, orderNumber)
 
 	var number string
 	var userID int
 	numberFind := true
-	err = br.QueryRow().Scan(&number, &userID)
+	err = row.Scan(&number, &userID)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return err
@@ -57,12 +39,19 @@ func (r *Repo) AddOrder(ctx context.Context, user *entity.User, orderNumber enti
 		}
 		return labelError.NewLabelError(labelError.TypeConflict, errors.New("number exists"))
 	}
-	_, err = br.Exec()
+
+	sqlInsert := "INSERT INTO orders (num, user_id) " +
+		"VALUES ($1, $2) " +
+		"ON CONFLICT (num) DO NOTHING"
+
+	_, err = tx.Exec(ctx, sqlInsert, orderNumber, user.ID)
 	if err != nil {
 		return err
 	}
-	br.Close()
-	tx.Commit(ctx)
+	err = tx.Commit(ctx)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

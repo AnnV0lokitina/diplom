@@ -22,8 +22,7 @@ func TestService_RegisterUser(t *testing.T) {
 	passwordHash := entity.CreatePasswordHash(password)
 
 	expectedUser := &entity.User{
-		ActiveSessionID: "sessionID",
-		Login:           login,
+		Login: login,
 	}
 
 	mockRepo := mock.NewMockRepo(ctl)

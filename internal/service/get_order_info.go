@@ -2,22 +2,17 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"github.com/AnnV0lokitina/diplom/internal/entity"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"io/ioutil"
-	"net/http"
 	"time"
 )
 
-func (s *Service) CreateGetOrderInfoProcess(ctx context.Context, accrualSystemAddress string, nOfWorkers int) {
-	s.jobCheckOrder = make(chan *entity.JobCheckOrder)
-	s.client = http.Client{}
+func (s *Service) CreateGetOrderInfoProcess(ctx context.Context, nOfWorkers int) {
+	s.jobCheckOrder = make(chan *JobCheckOrder)
 	s.sendOrdersToCheck(ctx)
-	s.createCheckOrderWorkerPull(ctx, accrualSystemAddress, nOfWorkers)
+	s.createCheckOrderWorkerPull(ctx, nOfWorkers)
 }
 
 func (s *Service) sendOrdersToCheck(ctx context.Context) {
@@ -38,7 +33,7 @@ func (s *Service) sendOrdersToCheck(ctx context.Context) {
 					return
 				}
 				for _, orderNumber := range orderNumberList {
-					job := entity.JobCheckOrder{
+					job := JobCheckOrder{
 						Number: orderNumber,
 					}
 					if s.jobCheckOrder != nil {
@@ -50,42 +45,12 @@ func (s *Service) sendOrdersToCheck(ctx context.Context) {
 	}()
 }
 
-func (s *Service) updateStatus(ctx context.Context, accrualSystemAddress string, job *entity.JobCheckOrder) error {
-	s.client.Timeout = time.Second * 1
-	url := accrualSystemAddress + "/api/orders/" + string(job.Number)
-	log.WithField("url", url).Info("send request")
-	response, err := s.client.Get(url)
+func (s *Service) updateStatus(ctx context.Context, job *JobCheckOrder) error {
+	orderInfo, err := s.accrualSystem.GetOrderInfo(job.Number)
 	if err != nil {
-		log.WithError(err).Warning("error while send request to external")
 		return err
 	}
-	defer response.Body.Close()
-	respBody, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		log.WithError(err).Warning("error while read info from external")
-		return err
-	}
-	log.WithField("body", string(respBody)).Info("receive body")
-	var parsedResponse entity.JSONOrderStatusResponse
-	if err := json.Unmarshal(respBody, &parsedResponse); err != nil {
-		log.WithError(err).Warning("invalid response from external")
-		return err
-	}
-
-	log.WithFields(log.Fields{
-		"status":  parsedResponse.Status,
-		"order":   parsedResponse.Order,
-		"accrual": parsedResponse.Accrual,
-	}).Info("parsed info")
-
-	orderNumber := entity.OrderNumber(parsedResponse.Order)
-	status, err := entity.NewOrderStatusFromExternal(parsedResponse.Status)
-	if err != nil {
-		log.WithError(err).Warning("error creating status from external")
-		return err
-	}
-	accrual := entity.NewPointValue(parsedResponse.Accrual)
-	err = s.repo.AddOrderInfo(ctx, orderNumber, status, accrual)
+	err = s.repo.AddOrderInfo(ctx, orderInfo)
 	if err != nil {
 		log.WithError(err).Warning("error while updating order info")
 		return err
@@ -94,13 +59,13 @@ func (s *Service) updateStatus(ctx context.Context, accrualSystemAddress string,
 	return nil
 }
 
-func (s *Service) createCheckOrderWorkerPull(ctx context.Context, accrualSystemAddress string, nOfWorkers int) {
+func (s *Service) createCheckOrderWorkerPull(ctx context.Context, nOfWorkers int) {
 	g, _ := errgroup.WithContext(ctx)
 
 	for i := 1; i <= nOfWorkers; i++ {
 		g.Go(func() error {
 			for job := range s.jobCheckOrder {
-				err := s.updateStatus(ctx, accrualSystemAddress, job)
+				err := s.updateStatus(ctx, job)
 				if err != nil {
 					continue
 				}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/AnnV0lokitina/diplom/internal/entity"
-	"github.com/AnnV0lokitina/diplom/internal/mock"
+	mock "github.com/AnnV0lokitina/diplom/internal/service_mock"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -26,6 +26,7 @@ func TestService_RegisterUser(t *testing.T) {
 	}
 
 	mockRepo := mock.NewMockRepo(ctl)
+	mockAcc := mock.NewMockAccrualSystem(ctl)
 
 	errLoginExist := labelError.NewLabelError(labelError.TypeConflict, errors.New("login exists"))
 
@@ -34,7 +35,7 @@ func TestService_RegisterUser(t *testing.T) {
 		mockRepo.EXPECT().CreateUser(ctx, gomock.AssignableToTypeOf(session), login, passwordHash).Return(errLoginExist),
 	)
 
-	service := NewService(mockRepo)
+	service := NewService(mockRepo, mockAcc)
 	user, err := service.RegisterUser(ctx, login, password)
 	assert.NoError(t, err)
 	assert.Equal(t, user.Login, expectedUser.Login)
@@ -61,6 +62,7 @@ func TestService_LoginUser(t *testing.T) {
 	}
 
 	mockRepo := mock.NewMockRepo(ctl)
+	mockAcc := mock.NewMockAccrualSystem(ctl)
 
 	errUserNotFound := labelError.NewLabelError(labelError.TypeNotFound, errors.New("no registered user"))
 	errUserUnauth := labelError.NewLabelError(labelError.TypeUnauthorized, errors.New("user unauthorized"))
@@ -78,7 +80,7 @@ func TestService_LoginUser(t *testing.T) {
 		mockRepo.EXPECT().AddUserSession(ctx, gomock.AssignableToTypeOf(user)).Return(nil),
 	)
 
-	service := NewService(mockRepo)
+	service := NewService(mockRepo, mockAcc)
 	resultUser, err := service.LoginUser(ctx, user.Login, "password")
 	assert.Nil(t, resultUser)
 	assert.Equal(t, err.Error(), errUserUnauth.Error())
@@ -110,6 +112,7 @@ func TestService_authorizeUser(t *testing.T) {
 	}
 
 	mockRepo := mock.NewMockRepo(ctl)
+	mockAcc := mock.NewMockAccrualSystem(ctl)
 
 	errUserNotFound := labelError.NewLabelError(labelError.TypeNotFound, errors.New("no registered user"))
 	errUserUnauth := labelError.NewLabelError(labelError.TypeUnauthorized, errors.New("user unauthorized"))
@@ -121,7 +124,7 @@ func TestService_authorizeUser(t *testing.T) {
 		mockRepo.EXPECT().GetUserBySessionID(ctx, gomock.AssignableToTypeOf(sessionID)).Return(user, nil),
 	)
 
-	service := NewService(mockRepo)
+	service := NewService(mockRepo, mockAcc)
 	resultUser, err := service.authorizeUser(ctx, "sessionID")
 	assert.Nil(t, resultUser)
 	assert.Equal(t, err.Error(), errUserUnauth.Error())
@@ -149,6 +152,7 @@ func TestService_AddNewOrder(t *testing.T) {
 	ctx := context.TODO()
 
 	mockRepo := mock.NewMockRepo(ctl)
+	mockAcc := mock.NewMockAccrualSystem(ctl)
 
 	errOrderNumIncorrect := labelError.NewLabelError(labelError.TypeInvalidData, errors.New("order number incorrect"))
 	errNumCreated := labelError.NewLabelError(labelError.TypeCreated, errors.New("number created"))
@@ -164,7 +168,7 @@ func TestService_AddNewOrder(t *testing.T) {
 		mockRepo.EXPECT().AddOrder(ctx, gomock.AssignableToTypeOf(user), gomock.AssignableToTypeOf(orderNumber)).Return(nil),
 	)
 
-	service := NewService(mockRepo)
+	service := NewService(mockRepo, mockAcc)
 
 	err := service.AddNewOrder(ctx, "sessionID", incorrectNum)
 	assert.Equal(t, err.Error(), errOrderNumIncorrect.Error())
@@ -195,6 +199,7 @@ func TestService_GetOrderList(t *testing.T) {
 	ctx := context.TODO()
 
 	mockRepo := mock.NewMockRepo(ctl)
+	mockAcc := mock.NewMockAccrualSystem(ctl)
 
 	errNotFound := labelError.NewLabelError(labelError.TypeNotFound, errors.New("not found"))
 	errDef := errors.New("error")
@@ -207,7 +212,7 @@ func TestService_GetOrderList(t *testing.T) {
 		mockRepo.EXPECT().GetUserOrders(ctx, gomock.AssignableToTypeOf(user)).Return(userOrders, nil),
 	)
 
-	service := NewService(mockRepo)
+	service := NewService(mockRepo, mockAcc)
 
 	orders, err := service.GetOrderList(ctx, "sessionID")
 	assert.Equal(t, err.Error(), errNotFound.Error())
@@ -233,6 +238,7 @@ func TestService_GetUserBalance(t *testing.T) {
 
 	ctx := context.TODO()
 	mockRepo := mock.NewMockRepo(ctl)
+	mockAcc := mock.NewMockAccrualSystem(ctl)
 	errDef := errors.New("error")
 
 	mockRepo.EXPECT().GetUserBySessionID(ctx, gomock.AssignableToTypeOf(sessionID)).Return(user, nil).AnyTimes()
@@ -242,7 +248,7 @@ func TestService_GetUserBalance(t *testing.T) {
 		mockRepo.EXPECT().GetUserBalance(ctx, gomock.AssignableToTypeOf(user)).Return(userBalance, nil),
 	)
 
-	service := NewService(mockRepo)
+	service := NewService(mockRepo, mockAcc)
 
 	balance, err := service.GetUserBalance(ctx, "sessionID")
 	assert.Equal(t, err.Error(), errDef.Error())
@@ -266,6 +272,7 @@ func TestService_GetUserWithdrawals(t *testing.T) {
 	ctx := context.TODO()
 
 	mockRepo := mock.NewMockRepo(ctl)
+	mockAcc := mock.NewMockAccrualSystem(ctl)
 
 	errNotFound := labelError.NewLabelError(labelError.TypeNotFound, errors.New("not found"))
 	errDef := errors.New("error")
@@ -278,7 +285,7 @@ func TestService_GetUserWithdrawals(t *testing.T) {
 		mockRepo.EXPECT().GetUserWithdrawals(ctx, gomock.AssignableToTypeOf(user)).Return(userWithdrawals, nil),
 	)
 
-	service := NewService(mockRepo)
+	service := NewService(mockRepo, mockAcc)
 
 	withdrawals, err := service.GetUserWithdrawals(ctx, "sessionID")
 	assert.Equal(t, err.Error(), errNotFound.Error())
@@ -293,50 +300,101 @@ func TestService_GetUserWithdrawals(t *testing.T) {
 	assert.NotEqual(t, len(withdrawals), 0)
 }
 
-//func TestService_UserOrderWithdraw(t *testing.T) {
-//	ctl := gomock.NewController(t)
-//	defer ctl.Finish()
-//
-//	var sessionID string
-//	var orderNumber entity.OrderNumber
-//	var user *entity.User
-//
-//	correctNum := "74528626868518"
-//	incorrectNum := "77745286268685181"
-//	sum := 10.12
-//
-//	ctx := context.TODO()
-//
-//	mockRepo := mock.NewMockRepo(ctl)
-//
-//	errOrderNumIncorrect := labelError.NewLabelError(labelError.TypeInvalidData, errors.New("order number incorrect"))
-//	errNumCreated := labelError.NewLabelError(labelError.TypeCreated, errors.New("number created"))
-//	errNumExisted := labelError.NewLabelError(labelError.TypeConflict, errors.New("number exists"))
-//	errDef := errors.New("error")
-//
-//	mockRepo.EXPECT().GetUserBySessionID(ctx, gomock.AssignableToTypeOf(sessionID)).Return(user, nil).AnyTimes()
-//
-//	gomock.InOrder(
-//		mockRepo.EXPECT().UserOrderWithdraw(ctx, gomock.AssignableToTypeOf(user), gomock.AssignableToTypeOf(orderNumber)).Return(errNumCreated),
-//		mockRepo.EXPECT().UserOrderWithdraw(ctx, gomock.AssignableToTypeOf(user), gomock.AssignableToTypeOf(orderNumber)).Return(errNumExisted),
-//		mockRepo.EXPECT().UserOrderWithdraw(ctx, gomock.AssignableToTypeOf(user), gomock.AssignableToTypeOf(orderNumber)).Return(errDef),
-//		mockRepo.EXPECT().UserOrderWithdraw(ctx, gomock.AssignableToTypeOf(user), gomock.AssignableToTypeOf(orderNumber)).Return(nil),
-//	)
-//
-//	service := NewService(mockRepo)
-//
-//	err := service.UserOrderWithdraw(ctx, "sessionID", incorrectNum, sum)
-//	assert.Equal(t, err.Error(), errOrderNumIncorrect.Error())
-//
-//	err = service.UserOrderWithdraw(ctx, "sessionID", correctNum, sum)
-//	assert.Equal(t, err.Error(), errNumCreated.Error())
-//
-//	err = service.UserOrderWithdraw(ctx, "sessionID", correctNum, sum)
-//	assert.Equal(t, err.Error(), errNumExisted.Error())
-//
-//	err = service.UserOrderWithdraw(ctx, "sessionID", correctNum, sum)
-//	assert.Equal(t, err.Error(), errDef.Error())
-//
-//	err = service.UserOrderWithdraw(ctx, "sessionID", correctNum, sum)
-//	assert.Nil(t, err)
-//}
+func TestService_UserOrderWithdraw(t *testing.T) {
+	ctl := gomock.NewController(t)
+	defer ctl.Finish()
+
+	var sessionID string
+	var orderNumber entity.OrderNumber
+	var pointValue entity.PointValue
+	var user *entity.User
+
+	correctNum := "74528626868518"
+	incorrectNum := "77745286268685181"
+	sum := 10.12
+
+	ctx := context.TODO()
+
+	mockRepo := mock.NewMockRepo(ctl)
+	mockAcc := mock.NewMockAccrualSystem(ctl)
+
+	errOrderNumIncorrect := labelError.NewLabelError(labelError.TypeInvalidData, errors.New("order number incorrect"))
+	errNoPoints := labelError.NewLabelError(labelError.TypeNotEnoughPoints, errors.New("no points"))
+	errDef := errors.New("error")
+
+	mockRepo.EXPECT().GetUserBySessionID(ctx, gomock.AssignableToTypeOf(sessionID)).Return(user, nil).AnyTimes()
+
+	gomock.InOrder(
+		mockRepo.EXPECT().UserOrderWithdraw(
+			ctx,
+			gomock.AssignableToTypeOf(user),
+			gomock.AssignableToTypeOf(orderNumber),
+			gomock.AssignableToTypeOf(pointValue),
+		).Return(errNoPoints),
+		mockRepo.EXPECT().UserOrderWithdraw(
+			ctx,
+			gomock.AssignableToTypeOf(user),
+			gomock.AssignableToTypeOf(orderNumber),
+			gomock.AssignableToTypeOf(pointValue),
+		).Return(errDef),
+		mockRepo.EXPECT().UserOrderWithdraw(
+			ctx,
+			gomock.AssignableToTypeOf(user),
+			gomock.AssignableToTypeOf(orderNumber),
+			gomock.AssignableToTypeOf(pointValue),
+		).Return(nil),
+	)
+
+	service := NewService(mockRepo, mockAcc)
+
+	err := service.UserOrderWithdraw(ctx, "sessionID", incorrectNum, sum)
+	assert.Equal(t, err.Error(), errOrderNumIncorrect.Error())
+
+	err = service.UserOrderWithdraw(ctx, "sessionID", correctNum, sum)
+	assert.Equal(t, err.Error(), errNoPoints.Error())
+
+	err = service.UserOrderWithdraw(ctx, "sessionID", correctNum, sum)
+	assert.Equal(t, err.Error(), errDef.Error())
+
+	err = service.UserOrderWithdraw(ctx, "sessionID", correctNum, sum)
+	assert.Nil(t, err)
+}
+
+func TestService_updateStatus(t *testing.T) {
+	ctl := gomock.NewController(t)
+	defer ctl.Finish()
+
+	var orderInfo *entity.OrderUpdateInfo
+	var orderNumber entity.OrderNumber
+
+	resultOrderInfo := &entity.OrderUpdateInfo{}
+
+	ctx := context.TODO()
+
+	mockRepo := mock.NewMockRepo(ctl)
+	mockAcc := mock.NewMockAccrualSystem(ctl)
+	errDef := errors.New("error")
+
+	gomock.InOrder(
+		mockAcc.EXPECT().GetOrderInfo(gomock.AssignableToTypeOf(orderNumber)).Return(nil, errDef),
+		mockAcc.EXPECT().GetOrderInfo(gomock.AssignableToTypeOf(orderNumber)).Return(resultOrderInfo, nil).Times(2),
+	)
+	gomock.InOrder(
+		mockRepo.EXPECT().AddOrderInfo(ctx, gomock.AssignableToTypeOf(orderInfo)).Return(errDef),
+		mockRepo.EXPECT().AddOrderInfo(ctx, gomock.AssignableToTypeOf(orderInfo)).Return(nil),
+	)
+	service := NewService(mockRepo, mockAcc)
+
+	job := &JobCheckOrder{
+		Number: entity.OrderNumber("74528626868518"),
+	}
+
+	err := service.updateStatus(ctx, job)
+	assert.NotNil(t, err)
+
+	err = service.updateStatus(ctx, job)
+	assert.NotNil(t, err)
+
+	err = service.updateStatus(ctx, job)
+	assert.Nil(t, err)
+}

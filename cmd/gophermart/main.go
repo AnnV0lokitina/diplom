@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/AnnV0lokitina/diplom/internal/external"
 	handlerPkg "github.com/AnnV0lokitina/diplom/internal/handler"
 	"github.com/AnnV0lokitina/diplom/internal/repo"
 	"github.com/AnnV0lokitina/diplom/internal/service"
@@ -32,12 +33,14 @@ func main() {
 	}
 	defer repo.Close(ctx)
 
-	service := service.NewService(repo)
+	accrualSystem := external.NewAccrualSystem(cfg.AccrualSystemAddress)
+
+	service := service.NewService(repo, accrualSystem)
 	handler := handlerPkg.NewHandler(service)
 	application := NewApp(handler)
 
 	go func() {
-		service.CreateGetOrderInfoProcess(ctx, cfg.AccrualSystemAddress, nOfWorkers)
+		service.CreateGetOrderInfoProcess(ctx, nOfWorkers)
 	}()
 
 	err = application.Run(ctx, cfg.RunAddress)

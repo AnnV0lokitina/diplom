@@ -84,7 +84,7 @@ func (r *Repo) UserOrderWithdraw(
 		return err
 	}
 	if userBalance.Current-sum < 0 {
-		return labelError.NewLabelError(labelError.TypeNotEnoughPoints, errors.New("not found"))
+		return labelError.NewLabelError(labelError.TypeNotEnoughPoints, errors.New("no points"))
 	}
 
 	sqlAddOrder := "INSERT INTO orders (num, user_id) " +

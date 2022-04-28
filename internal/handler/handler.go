@@ -10,7 +10,9 @@ import (
 const (
 	headerAcceptEncoding  = "Accept-Encoding"
 	headerContentEncoding = "Content-Encoding"
+	headerContentType     = "Content-Type"
 	encoding              = "gzip"
+	jsonContentType       = "application/json; charset=UTF-8"
 )
 
 type Service interface {

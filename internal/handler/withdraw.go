@@ -35,7 +35,7 @@ func (h *Handler) Withdraw() http.HandlerFunc {
 			processWithdrawError(w, err)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.Header().Set(headerContentType, jsonContentType)
 		w.WriteHeader(http.StatusOK)
 	}
 }
@@ -54,7 +54,7 @@ func processWithdrawError(w http.ResponseWriter, err error) {
 			return
 		}
 		if labelErr.Label == labelError.TypeInvalidData {
-			log.Info("order not found")
+			log.Info("wrong order number")
 			http.Error(w, "Invalid order number", http.StatusUnprocessableEntity)
 			return
 		}

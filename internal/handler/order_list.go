@@ -34,7 +34,7 @@ func (h *Handler) GetOrdersList() http.HandlerFunc {
 			}
 			orderResponseList = append(orderResponseList, o)
 		}
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.Header().Set(headerContentType, jsonContentType)
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(&orderResponseList); err != nil {
 			http.Error(w, "Error while json conversion", http.StatusInternalServerError)

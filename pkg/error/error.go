@@ -1,0 +1,32 @@
+package error
+
+import (
+	"fmt"
+	"strings"
+)
+
+type LabelError struct {
+	Label string
+	Err   error
+}
+
+const (
+	TypeConflict              = "CONFLICT"
+	TypeNotFound              = "NOT FOUND"
+	TypeUnauthorized          = "UNAUTHORIZED"
+	TypeCreated               = "CREATED"
+	TypeNotEnoughPoints       = "NOT_ENOUGH_POINTS"
+	TypeInvalidData           = "INVALID_DATA"
+	TypeInvalidExternalStatus = "INVALID_EXTERNAL_STATUS"
+)
+
+func (le *LabelError) Error() string {
+	return fmt.Sprintf("[%s] %v", le.Label, le.Err)
+}
+
+func NewLabelError(label string, err error) error {
+	return &LabelError{
+		Label: strings.ToUpper(label),
+		Err:   err,
+	}
+}

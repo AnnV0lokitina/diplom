@@ -44,7 +44,7 @@ func (r *Repo) AddOrderInfo(ctx context.Context, orderInfo *entity.OrderUpdateIn
 
 	sqlChangeBalance := "INSERT INTO transactions (operation_type, delta, order_id) VALUES ($1, $2, $3)"
 
-	if _, err = tx.Exec(ctx, sqlChangeBalance, OperationAdd, orderInfo.Accrual, orderID); err != nil {
+	if _, err = tx.Exec(ctx, sqlChangeBalance, entity.OperationAdd.String(), orderInfo.Accrual, orderID); err != nil {
 		return err
 	}
 	err = tx.Commit(ctx)

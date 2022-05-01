@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tr_type') THEN CREATE TYPE tr_type AS ENUM ('add', 'sub');
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tr_type') THEN CREATE TYPE tr_type AS ENUM ('ADD', 'SUB');
     END IF;
 END$$;
 -- +goose StatementEnd

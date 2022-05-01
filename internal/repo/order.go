@@ -72,7 +72,7 @@ func (r *Repo) GetUserOrders(ctx context.Context, user *entity.User) ([]*entity.
 		ON o.id=t.order_id AND t.operation_type=$1 
 		WHERE o.user_id=$2 
 		GROUP BY o.num, o.uploaded_at, o.status`
-	rows, _ := r.conn.Query(ctx, sqlRequest, OperationAdd, user.ID)
+	rows, _ := r.conn.Query(ctx, sqlRequest, entity.OperationAdd.String(), user.ID)
 	orders := make([]*entity.Order, 0)
 	for rows.Next() {
 		order := &entity.Order{}

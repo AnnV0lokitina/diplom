@@ -9,6 +9,13 @@ const defaultPrecision = 100
 
 type PointValue int
 
+type OperationType int
+
+const (
+	OperationAdd OperationType = iota
+	OperationSub
+)
+
 type Withdrawal struct {
 	OrderNumber string
 	Sum         PointValue
@@ -33,4 +40,13 @@ func (pv PointValue) ToFloat() float64 {
 	return r
 }
 
-//fmt.Sprintf("%f", r)
+func (ot OperationType) String() string {
+	switch ot {
+	case OperationAdd:
+		return "ADD"
+	case OperationSub:
+		return "SUB"
+	default:
+		return "UNKNOWN"
+	}
+}

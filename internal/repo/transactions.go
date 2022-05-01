@@ -16,12 +16,12 @@ type IQueryRow interface {
 
 func getUserBalanceFromRows(ctx context.Context, user *entity.User, client IQueryRow) (*entity.UserBalance, error) {
 	sqlCheckBalance := `SELECT SUM(CASE 
-				WHEN t.operation_type = 'add' then t.delta
-				WHEN t.operation_type = 'sub' then t.delta * -1
+				WHEN t.operation_type = 'ADD' then t.delta
+				WHEN t.operation_type = 'SUB' then t.delta * -1
 			END) current,
 			SUM(CASE 
-				WHEN t.operation_type = 'add' then 0
-				WHEN t.operation_type = 'sub' then t.delta
+				WHEN t.operation_type = 'ADD' then 0
+				WHEN t.operation_type = 'SUB' then t.delta
 			END) withdrawn 
 		FROM orders o 
 		JOIN transactions t ON o.id=t.order_id 
@@ -90,7 +90,7 @@ func (r *Repo) UserOrderWithdraw(
 
 	sqlAddTransaction := "INSERT INTO transactions (operation_type, delta, order_id) VALUES ($1, $2, $3)"
 
-	_, err = tx.Exec(ctx, sqlAddTransaction, OperationSub, sum, orderID)
+	_, err = tx.Exec(ctx, sqlAddTransaction, entity.OperationSub.String(), sum, orderID)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func (r *Repo) GetUserWithdrawals(ctx context.Context, user *entity.User) ([]*en
 		LEFT JOIN transactions t ON o.id=t.order_id AND t.operation_type=$1 
 		WHERE o.user_id=$2 
 		ORDER BY t.created_at DESC`
-	rows, _ := r.conn.Query(ctx, sql, OperationSub, user.ID)
+	rows, _ := r.conn.Query(ctx, sql, entity.OperationSub.String(), user.ID)
 	withdrawals := make([]*entity.Withdrawal, 0)
 	for rows.Next() {
 		w := &entity.Withdrawal{}

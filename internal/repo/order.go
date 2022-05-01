@@ -20,6 +20,22 @@ func (r *Repo) AddOrder(ctx context.Context, user *entity.User, orderNumber enti
 	}
 	defer tx.Rollback(ctx)
 
+	sqlInsert := `INSERT INTO orders (num, user_id) 
+					VALUES ($1, $2) 
+					ON CONFLICT (num) DO NOTHING`
+
+	result, err := tx.Exec(ctx, sqlInsert, orderNumber, user.ID)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() > 0 {
+		err = tx.Commit(ctx)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
 	sqlCheck := "SELECT num, user_id FROM orders WHERE num=$1 LIMIT 1"
 	row := tx.QueryRow(ctx, sqlCheck, orderNumber)
 
@@ -40,14 +56,6 @@ func (r *Repo) AddOrder(ctx context.Context, user *entity.User, orderNumber enti
 		return labelError.NewLabelError(labelError.TypeConflict, errors.New("number exists"))
 	}
 
-	sqlInsert := "INSERT INTO orders (num, user_id) " +
-		"VALUES ($1, $2) " +
-		"ON CONFLICT (num) DO NOTHING"
-
-	_, err = tx.Exec(ctx, sqlInsert, orderNumber, user.ID)
-	if err != nil {
-		return err
-	}
 	err = tx.Commit(ctx)
 	if err != nil {
 		return err
@@ -58,12 +66,12 @@ func (r *Repo) AddOrder(ctx context.Context, user *entity.User, orderNumber enti
 func (r *Repo) GetUserOrders(ctx context.Context, user *entity.User) ([]*entity.Order, error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
-	sqlRequest := "SELECT o.num, o.uploaded_at, o.status, sum(t.delta) accrual " +
-		"FROM orders o " +
-		"LEFT JOIN transactions t " +
-		"ON o.id=t.order_id AND t.operation_type=$1 " +
-		"WHERE o.user_id=$2 " +
-		"GROUP BY o.num, o.uploaded_at, o.status"
+	sqlRequest := `SELECT o.num, o.uploaded_at, o.status, sum(t.delta) accrual 
+		FROM orders o 
+		LEFT JOIN transactions t 
+		ON o.id=t.order_id AND t.operation_type=$1 
+		WHERE o.user_id=$2 
+		GROUP BY o.num, o.uploaded_at, o.status`
 	rows, _ := r.conn.Query(ctx, sqlRequest, OperationAdd, user.ID)
 	orders := make([]*entity.Order, 0)
 	for rows.Next() {
@@ -82,6 +90,5 @@ func (r *Repo) GetUserOrders(ctx context.Context, user *entity.User) ([]*entity.
 	if len(orders) == 0 {
 		return nil, labelError.NewLabelError(labelError.TypeNotFound, errors.New("not found"))
 	}
-	l := len(orders)
-	return orders[:l:l], nil
+	return orders, nil
 }

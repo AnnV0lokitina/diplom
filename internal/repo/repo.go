@@ -6,9 +6,11 @@ import (
 	"time"
 )
 
+type OperationType string
+
 const (
-	OperationAdd = 0
-	OperationSub = 1
+	OperationAdd = "add"
+	OperationSub = "sub"
 )
 
 type Repo struct {

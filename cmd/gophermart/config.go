@@ -9,6 +9,7 @@ type config struct {
 	RunAddress           string `env:"RUN_ADDRESS"  envDefault:"localhost:8080"`
 	AccrualSystemAddress string `env:"ACCRUAL_SYSTEM_ADDRESS" envDefault:""`
 	DataBaseURI          string `env:"DATABASE_URI" envDefault:""`
+	NumOfWorkers         int    `env:"NUMBER_OF_WORKERS" envDefault:"3"`
 }
 
 func initConfig() *config {

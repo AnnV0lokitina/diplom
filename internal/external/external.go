@@ -23,8 +23,9 @@ type JSONOrderStatusResponse struct {
 }
 
 func NewAccrualSystem(address string) *AccrualSystem {
-	client := http.Client{}
-	client.Timeout = time.Second * 1
+	client := http.Client{
+		Timeout: time.Second * 1,
+	}
 
 	return &AccrualSystem{
 		address: address,

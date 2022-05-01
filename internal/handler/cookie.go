@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/AnnV0lokitina/diplom/internal/entity"
 	"net/http"
 	"time"
 )
@@ -11,7 +12,7 @@ func addSessionIDToCookie(w http.ResponseWriter, sessionID string) {
 	cookie := &http.Cookie{
 		Name:    SessionCookieName,
 		Value:   sessionID,
-		Expires: time.Now().Add(5 * time.Minute),
+		Expires: time.Now().Add(entity.TTL),
 	}
 	http.SetCookie(w, cookie)
 }

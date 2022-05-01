@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"github.com/AnnV0lokitina/diplom/internal/entity"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
@@ -16,7 +17,7 @@ type IQueryRow interface {
 func getUserBalanceFromRows(ctx context.Context, user *entity.User, client IQueryRow) (*entity.UserBalance, error) {
 	sqlCheckBalance := `SELECT SUM(CASE 
 				WHEN t.operation_type = 'add' then t.delta
-				WHEN t.operation_type = 'sub' 0 then t.delta * -1
+				WHEN t.operation_type = 'sub' then t.delta * -1
 			END) current,
 			SUM(CASE 
 				WHEN t.operation_type = 'add' then 0
@@ -28,12 +29,22 @@ func getUserBalanceFromRows(ctx context.Context, user *entity.User, client IQuer
 
 	row := client.QueryRow(ctx, sqlCheckBalance, user.ID)
 
-	userBalance := &entity.UserBalance{}
-	err := row.Scan(&userBalance.Current, &userBalance.Withdrawn)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	var current sql.NullInt64
+	var withdrawn sql.NullInt64
+	err := row.Scan(&current, &withdrawn)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return &entity.UserBalance{
+				Current:   entity.PointValue(0),
+				Withdrawn: entity.PointValue(0),
+			}, nil
+		}
 		return nil, err
 	}
-	return userBalance, nil
+	return &entity.UserBalance{
+		Current:   entity.PointValue(current.Int64),
+		Withdrawn: entity.PointValue(withdrawn.Int64),
+	}, nil
 }
 
 func (r *Repo) GetUserBalance(ctx context.Context, user *entity.User) (*entity.UserBalance, error) {

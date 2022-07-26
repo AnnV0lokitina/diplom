@@ -10,3 +10,9 @@ type Order struct {
 	Status     OrderStatus
 	UploadedAt time.Time
 }
+
+type OrderUpdateInfo struct {
+	Number  OrderNumber
+	Status  OrderStatus
+	Accrual PointValue
+}

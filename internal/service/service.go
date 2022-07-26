@@ -6,7 +6,6 @@ import (
 	"github.com/AnnV0lokitina/diplom/internal/entity"
 	labelError "github.com/AnnV0lokitina/diplom/pkg/error"
 	log "github.com/sirupsen/logrus"
-	"net/http"
 )
 
 type Repo interface {
@@ -34,24 +33,28 @@ type Repo interface {
 		sum entity.PointValue,
 	) error
 	GetUserWithdrawals(ctx context.Context, user *entity.User) ([]*entity.Withdrawal, error)
-	AddOrderInfo(
-		ctx context.Context,
-		orderNumber entity.OrderNumber,
-		status entity.OrderStatus,
-		accrual entity.PointValue,
-	) error
+	AddOrderInfo(ctx context.Context, orderInfo *entity.OrderUpdateInfo) error
 	GetOrdersListForRequest(ctx context.Context) ([]entity.OrderNumber, error)
+}
+
+type AccrualSystem interface {
+	GetOrderInfo(number entity.OrderNumber) (*entity.OrderUpdateInfo, error)
+}
+
+type JobCheckOrder struct {
+	Number entity.OrderNumber
 }
 
 type Service struct {
 	repo          Repo
-	jobCheckOrder chan *entity.JobCheckOrder
-	client        http.Client
+	accrualSystem AccrualSystem
+	jobCheckOrder chan *JobCheckOrder
 }
 
-func NewService(repo Repo) *Service {
+func NewService(repo Repo, accrualSystem AccrualSystem) *Service {
 	return &Service{
-		repo: repo,
+		repo:          repo,
+		accrualSystem: accrualSystem,
 	}
 }
 

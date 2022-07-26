@@ -9,12 +9,7 @@ import (
 	"time"
 )
 
-func (r *Repo) AddOrderInfo(
-	ctx context.Context,
-	orderNumber entity.OrderNumber,
-	status entity.OrderStatus,
-	accrual entity.PointValue,
-) error {
+func (r *Repo) AddOrderInfo(ctx context.Context, orderInfo *entity.OrderUpdateInfo) error {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
@@ -29,7 +24,7 @@ func (r *Repo) AddOrderInfo(
 		"WHERE num=$2 " +
 		"RETURNING id"
 
-	row := r.conn.QueryRow(ctx, sqlSetStatus, status, orderNumber)
+	row := r.conn.QueryRow(ctx, sqlSetStatus, orderInfo.Status, orderInfo.Number)
 	var orderID int
 	err = row.Scan(&orderID)
 	if err != nil {
@@ -39,7 +34,7 @@ func (r *Repo) AddOrderInfo(
 		return err
 	}
 
-	if accrual == 0 {
+	if orderInfo.Accrual == 0 {
 		err = tx.Commit(ctx)
 		if err != nil {
 			return err
@@ -50,7 +45,7 @@ func (r *Repo) AddOrderInfo(
 	sqlChangeBalance := "INSERT INTO transactions (operation_type, delta, order_id) " +
 		"VALUES ($1, $2, $3)"
 
-	if _, err = tx.Exec(ctx, sqlChangeBalance, OperationAdd, accrual, orderID); err != nil {
+	if _, err = tx.Exec(ctx, sqlChangeBalance, OperationAdd, orderInfo.Accrual, orderID); err != nil {
 		return err
 	}
 	err = tx.Commit(ctx)

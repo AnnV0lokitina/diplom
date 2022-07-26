@@ -80,12 +80,9 @@ func (r *Repo) AddUserSession(ctx context.Context, user *entity.User) error {
 		"VALUES ($1, $2, $3, $4)"
 	timestamp := time.Now().Unix()
 	lifetime := entity.SessionLifetime.Seconds()
-	result, err := r.conn.Exec(ctx, sqlInsertSession, user.ActiveSessionID, timestamp, lifetime, user.ID)
+	_, err := r.conn.Exec(ctx, sqlInsertSession, user.ActiveSessionID, timestamp, lifetime, user.ID)
 	if err != nil {
 		return err
-	}
-	if result.RowsAffected() == 0 {
-		return labelError.NewLabelError(labelError.TypeNotFound, errors.New("no registered user"))
 	}
 	return nil
 }

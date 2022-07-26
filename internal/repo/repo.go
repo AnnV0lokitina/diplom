@@ -93,3 +93,59 @@ func (r *Repo) GetUserBySessionID(ctx context.Context, activeSessionID string) (
 	}
 	return user, nil
 }
+
+func (r *Repo) AddOrder(ctx context.Context, user *entity.User, orderNumber entity.OrderNumber) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	tx, err := r.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	batch := &pgx.Batch{}
+
+	sql1 := "SELECT num, login FROM orders WHERE num=$1 LIMIT 1"
+	_, err = tx.Prepare(ctx, "check", sql1)
+	if err != nil {
+		return err
+	}
+	batch.Queue("check", orderNumber)
+
+	sql2 := "INSERT INTO orders (num, login) " +
+		"VALUES ($1, $2) " +
+		"ON CONFLICT (num) DO NOTHING"
+
+	_, err = tx.Prepare(ctx, "insert", sql2)
+	if err != nil {
+		return err
+	}
+	batch.Queue("insert", orderNumber, user.Login)
+
+	br := tx.SendBatch(ctx, batch)
+
+	var number string
+	var login string
+	numberFind := true
+	err = br.QueryRow().Scan(&number, &login)
+	if err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		numberFind = false
+	}
+	if numberFind {
+		if user.Login == login {
+			return labelError.NewLabelError(labelError.TypeCreated, errors.New("number created"))
+		}
+		return labelError.NewLabelError(labelError.TypeConflict, errors.New("number exists"))
+	}
+	_, err = br.Exec()
+	if err != nil {
+		return err
+	}
+	br.Close()
+	tx.Commit(ctx)
+	return nil
+}

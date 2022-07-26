@@ -11,8 +11,11 @@ type LabelError struct {
 }
 
 const (
-	TypeConflict = "CONFLICT"
-	TypeNotFound = "NOT FOUND"
+	TypeConflict     = "CONFLICT"
+	TypeNotFound     = "NOT FOUND"
+	TypeUnauthorized = "UNAUTHORIZED"
+	TypeWrongFormat  = "WRONG_FORMAT"
+	TypeCreated      = "CREATED"
 )
 
 func (le *LabelError) Error() string {

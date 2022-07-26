@@ -11,11 +11,13 @@ type LabelError struct {
 }
 
 const (
-	TypeConflict     = "CONFLICT"
-	TypeNotFound     = "NOT FOUND"
-	TypeUnauthorized = "UNAUTHORIZED"
-	TypeWrongFormat  = "WRONG_FORMAT"
-	TypeCreated      = "CREATED"
+	TypeConflict              = "CONFLICT"
+	TypeNotFound              = "NOT FOUND"
+	TypeUnauthorized          = "UNAUTHORIZED"
+	TypeCreated               = "CREATED"
+	TypeNotEnoughPoints       = "NOT_ENOUGH_POINTS"
+	TypeInvalidData           = "INVALID_DATA"
+	TypeInvalidExternalStatus = "INVALID_EXTERNAL_STATUS"
 )
 
 func (le *LabelError) Error() string {

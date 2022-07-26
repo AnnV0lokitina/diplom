@@ -29,18 +29,18 @@ func (h *Handler) Register() http.HandlerFunc {
 		}
 
 		user, err := h.service.RegisterUser(ctx, parsedRequest.Login, parsedRequest.Password)
-		if err == nil {
-			addSessionIDToCookie(w, user.ActiveSessionID)
-			w.WriteHeader(http.StatusOK)
+		if err != nil {
+			var labelErr *labelError.LabelError
+			if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeConflict {
+				log.Info("login existed")
+				http.Error(w, "Login existed", http.StatusConflict)
+				return
+			}
+			log.WithError(err).Info("error when register register handler")
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		var labelErr *labelError.LabelError
-		if errors.As(err, &labelErr) && labelErr.Label == labelError.TypeConflict {
-			log.Info("login existed")
-			http.Error(w, "Login existed", http.StatusConflict)
-			return
-		}
-		log.WithError(err).Info("error when register")
-		w.WriteHeader(http.StatusInternalServerError)
+		addSessionIDToCookie(w, user.ActiveSessionID)
+		w.WriteHeader(http.StatusOK)
 	}
 }

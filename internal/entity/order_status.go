@@ -12,7 +12,7 @@ const (
 	// OrderStatusProcessed данные по заказу проверены и информация о расчёте успешно получена
 	OrderStatusProcessed
 	// OrderStatusUndefined неверный статус
-	OrderStatusUndefined = 1000
+	OrderStatusUndefined = -1
 )
 
 func (os OrderStatus) String() string {

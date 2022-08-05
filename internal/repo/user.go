@@ -24,10 +24,10 @@ func (r *Repo) CreateUser(
 	}
 	defer tx.Rollback(ctx)
 
-	sqlInsertUser := "INSERT INTO users (login, password) " +
-		"VALUES ($1, $2) " +
-		"ON CONFLICT (login) DO NOTHING " +
-		"RETURNING id"
+	sqlInsertUser := `INSERT INTO users (login, password) 
+		VALUES ($1, $2) 
+		ON CONFLICT (login) DO NOTHING 
+		RETURNING id`
 
 	row := tx.QueryRow(ctx, sqlInsertUser, login, passwordHash)
 	var userID int
@@ -38,11 +38,11 @@ func (r *Repo) CreateUser(
 		}
 		return err
 	}
-	sqlInsertSession := "INSERT INTO sessions (session_id, created_at, lifetime, user_id) " +
-		"VALUES ($1, $2, $3, $4)"
+	sqlInsertSession := `INSERT INTO sessions (session_id, created_at, lifetime, user_id) 
+		VALUES ($1, $2, $3, $4)`
 
 	timestamp := time.Now().Unix()
-	lifetime := entity.SessionLifetime.Seconds()
+	lifetime := entity.TTL.Seconds()
 	if _, err = tx.Exec(ctx, sqlInsertSession, sessionID, timestamp, lifetime, userID); err != nil {
 		return err
 	}
@@ -76,10 +76,10 @@ func (r *Repo) AuthUser(
 func (r *Repo) AddUserSession(ctx context.Context, user *entity.User) error {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
-	sqlInsertSession := "INSERT INTO sessions (session_id, created_at, lifetime, user_id) " +
-		"VALUES ($1, $2, $3, $4)"
+	sqlInsertSession := `INSERT INTO sessions (session_id, created_at, lifetime, user_id) 
+		VALUES ($1, $2, $3, $4)`
 	timestamp := time.Now().Unix()
-	lifetime := entity.SessionLifetime.Seconds()
+	lifetime := entity.TTL.Seconds()
 	_, err := r.conn.Exec(ctx, sqlInsertSession, user.ActiveSessionID, timestamp, lifetime, user.ID)
 	if err != nil {
 		return err
@@ -90,11 +90,11 @@ func (r *Repo) AddUserSession(ctx context.Context, user *entity.User) error {
 func (r *Repo) GetUserBySessionID(ctx context.Context, sessionID string) (*entity.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
-	sqlSelectUser := "SELECT u.id, u.login " +
-		"FROM sessions s " +
-		"JOIN users u ON u.id=s.user_id " +
-		"WHERE session_id=$1 AND created_at > $2 - lifetime " +
-		"LIMIT 1"
+	sqlSelectUser := `SELECT u.id, u.login 
+		FROM sessions s 
+		JOIN users u ON u.id=s.user_id 
+		WHERE session_id=$1 AND created_at > $2 - lifetime 
+		LIMIT 1`
 	timestamp := time.Now().Unix()
 	row := r.conn.QueryRow(ctx, sqlSelectUser, sessionID, timestamp)
 	var userID int

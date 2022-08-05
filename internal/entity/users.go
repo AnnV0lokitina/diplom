@@ -9,7 +9,7 @@ import (
 
 const (
 	sessionIDLength = 16
-	SessionLifetime = 10 * time.Minute
+	TTL             = 10 * time.Minute
 )
 
 type User struct {

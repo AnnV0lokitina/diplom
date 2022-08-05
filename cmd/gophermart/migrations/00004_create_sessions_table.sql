@@ -1,6 +1,6 @@
 -- +goose Up
 CREATE TABLE IF NOT EXISTS sessions (
-    id SERIAL,
+    id SERIAL PRIMARY KEY,
     session_id TEXT not null,
     created_at INTEGER NOT NULL,
     lifetime INTEGER NOT NULL,

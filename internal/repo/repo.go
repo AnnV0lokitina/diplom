@@ -6,11 +6,6 @@ import (
 	"time"
 )
 
-const (
-	OperationAdd = 0
-	OperationSub = 1
-)
-
 type Repo struct {
 	conn *pgx.Conn
 }
